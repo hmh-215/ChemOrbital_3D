@@ -486,10 +486,15 @@
       overflow: hidden;
     }
 
-    #webgl-canvas {
+    #webgl-canvas,
+    #viewport-container > canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
       width: 100%;
       height: 100%;
       display: block;
+      z-index: 1;
     }
 
     /* Selection Marquee Box */
@@ -1663,7 +1668,8 @@
       quickBuildOrbital: 's',
       nextId: 1,
       isLight: false,
-      covalentBonds: []
+      covalentBonds: [],
+      bridges: []
     };
 
     /* =========================================================================
@@ -1682,6 +1688,7 @@
     renderer.setSize(container.clientWidth, container.clientHeight);
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.domElement.id = 'webgl-canvas';
     container.appendChild(renderer.domElement);
 
     // Orbit Controls
@@ -3168,7 +3175,7 @@
       formulaEl.textContent = hillFormula;
 
       // Descriptive subtitle
-      if (state.bridges.length > 0) {
+      if (Array.isArray(state.bridges) && state.bridges.length > 0) {
         const bondingCount = state.bridges.filter(b => b.type === 'bonding').length;
         const antibondingCount = state.bridges.filter(b => b.type === 'antibonding').length;
         if (antibondingCount > 0 && bondingCount > 0) {
@@ -3178,7 +3185,7 @@
         } else {
           nameEl.textContent = `${bondingCount} π-Bond Bridge(s)`;
         }
-      } else if (state.covalentBonds.length > 0) {
+      } else if (Array.isArray(state.covalentBonds) && state.covalentBonds.length > 0) {
         nameEl.textContent = `${state.covalentBonds.length} Covalent Bond${state.covalentBonds.length === 1 ? '' : 's'}`;
       } else {
         nameEl.textContent = `${nAtoms} Atom${nAtoms === 1 ? '' : 's'} on Canvas`;
@@ -3534,7 +3541,17 @@
 
     function setInteractionMode(mode) {
       state.mode = mode;
-      document.body.className = `mode-${mode}`;
+      document.body.classList.remove('mode-orbit', 'mode-build', 'mode-box');
+      document.body.classList.add(`mode-${mode}`);
+
+      // Ensure renderer dimensions match updated container layout
+      const w = container.clientWidth;
+      const h = container.clientHeight;
+      if (w > 0 && h > 0 && (renderer.domElement.width !== w || renderer.domElement.height !== h)) {
+        camera.aspect = w / h;
+        camera.updateProjectionMatrix();
+        renderer.setSize(w, h);
+      }
 
       if (modeOrbitBtn) modeOrbitBtn.classList.toggle('active', mode === 'orbit');
       if (modeBuildBtn) modeBuildBtn.classList.toggle('active', mode === 'build');
@@ -3735,7 +3752,11 @@
       ctx.strokeStyle = color;
       ctx.lineWidth = 2.5;
       ctx.beginPath();
-      ctx.roundRect(8, 8, 364, 64, 12);
+      if (typeof ctx.roundRect === 'function') {
+        ctx.roundRect(8, 8, 364, 64, 12);
+      } else {
+        ctx.rect(8, 8, 364, 64);
+      }
       ctx.fill();
       ctx.stroke();
 
@@ -4064,6 +4085,7 @@
       clearAllAtoms();
       camera.position.set(0, 2, 7.5);
       controls.target.set(0, 0, 0);
+      controls.update();
 
       const c = addAtom({
         name: 'C',
@@ -4100,6 +4122,7 @@
       clearAllAtoms();
       camera.position.set(0, 3, 9);
       controls.target.set(0, 0, 0);
+      controls.update();
 
       // C1 at -1.2, C2 at +1.2. Head-to-head sp2 large heads meet at X = 0!
       const c1 = addAtom({
@@ -4147,6 +4170,7 @@
       clearAllAtoms();
       camera.position.set(0, 3, 9);
       controls.target.set(0, 0, 0);
+      controls.update();
 
       const c1 = addAtom({
         name: 'C1',
@@ -4184,6 +4208,7 @@
       clearAllAtoms();
       camera.position.set(0, 4.5, 9.5);
       controls.target.set(0, 0, 0);
+      controls.update();
 
       const R_c = 1.95;
       const R_h = 3.25;
@@ -4230,6 +4255,7 @@
       clearAllAtoms();
       camera.position.set(0, 3.8, 8.5);
       controls.target.set(0, 0, 0);
+      controls.update();
 
       const R = 1.65;
       const cAtoms = [];
@@ -4301,6 +4327,7 @@
       clearAllAtoms();
       camera.position.set(0, 3.8, 8.5);
       controls.target.set(0, 0, 0);
+      controls.update();
 
       // 4 Carbons in flat base: C1, C2, C4, C5 (y = -0.35)
       // 2 Carbons forming prow & stern: C0, C3 (bent upwards at y = +0.55)
@@ -4374,6 +4401,7 @@
       clearAllAtoms();
       camera.position.set(0, 5.5, 12.0);
       controls.target.set(0, 0, 0);
+      controls.update();
 
       const r = 1.35;
       const dx = r * Math.sqrt(3);
@@ -4440,6 +4468,7 @@
       clearAllAtoms();
       camera.position.set(0, 3, 9.5);
       controls.target.set(0, 0, 0);
+      controls.update();
 
       const p = addAtom({
         name: 'P',
@@ -4475,6 +4504,7 @@
       clearAllAtoms();
       camera.position.set(0, 3, 9.5);
       controls.target.set(0, 0, 0);
+      controls.update();
 
       const s = addAtom({
         name: 'S',
@@ -4513,6 +4543,7 @@
       clearAllAtoms();
       camera.position.set(0, 1.5, 7.5);
       controls.target.set(0, 0, 0);
+      controls.update();
 
       const o = addAtom({
         name: 'O',
@@ -4539,6 +4570,7 @@
       clearAllAtoms();
       camera.position.set(0, 4.2, 14.5);
       controls.target.set(0, 0, 0);
+      controls.update();
 
       const spacing = 3.6;
       const dOrbitalsData = [
@@ -5013,8 +5045,8 @@
 
       // Make selection rings always face the camera billboard-style
       state.atoms.forEach(atom => {
-        if (atom.selectionRing.visible) {
-          atom.selectionRing.quaternion.copy(camera.quaternion);
+        if (atom.selectionRing && atom.selectionRing.visible) {
+          atom.selectionRing.quaternion.copy(atom.group.quaternion).invert().multiply(camera.quaternion);
         }
       });
 
