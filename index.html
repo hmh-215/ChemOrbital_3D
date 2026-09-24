@@ -1,0 +1,4430 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ChemOrbital 3D - General Chemistry 1 Orbital Visualizer</title>
+  <!-- Three.js and OrbitControls via CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --bg-dark: #0b0f19;
+      --panel-bg: rgba(15, 23, 42, 0.88);
+      --panel-border: rgba(255, 255, 255, 0.08);
+      --accent-cyan: #38bdf8;
+      --accent-blue: #3b82f6;
+      --accent-indigo: #6366f1;
+      --accent-purple: #a855f7;
+      --accent-red: #ef4444;
+      --accent-green: #10b981;
+      --text-main: #f1f5f9;
+      --text-muted: #94a3b8;
+      --text-dim: #64748b;
+      --card-bg: rgba(30, 41, 59, 0.65);
+      --card-border: rgba(255, 255, 255, 0.05);
+      --input-bg: #1e293b;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg-dark);
+      color: var(--text-main);
+      overflow: hidden;
+      height: 100vh;
+      width: 100vw;
+      display: flex;
+    }
+
+    /* Left Sidebar Panel */
+    #sidebar {
+      width: 370px;
+      min-width: 340px;
+      height: 100vh;
+      background: var(--panel-bg);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-right: 1px solid var(--panel-border);
+      display: flex;
+      flex-direction: column;
+      z-index: 20;
+      box-shadow: 4px 0 24px rgba(0, 0, 0, 0.4);
+      transition: transform 0.25s ease;
+    }
+
+    .sidebar-header {
+      padding: 18px 20px 14px 20px;
+      border-bottom: 1px solid var(--panel-border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: rgba(15, 23, 42, 0.95);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, #0284c7, #6366f1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      box-shadow: 0 0 16px rgba(56, 189, 248, 0.3);
+    }
+
+    .brand-title {
+      font-size: 17px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      color: #fff;
+    }
+
+    .brand-subtitle {
+      font-size: 11px;
+      color: var(--accent-cyan);
+      font-weight: 500;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    /* Scrollable content inside sidebar */
+    .sidebar-content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .sidebar-content::-webkit-scrollbar {
+      width: 6px;
+    }
+    .sidebar-content::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    .sidebar-content::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.12);
+      border-radius: 3px;
+    }
+
+    /* Section Styles */
+    .section-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .section-title {
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    /* Controls & Buttons */
+    .btn {
+      appearance: none;
+      border: none;
+      background: #1e293b;
+      color: var(--text-main);
+      padding: 8px 12px;
+      font-size: 12px;
+      font-weight: 500;
+      border-radius: 8px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: all 0.18s ease;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .btn:hover {
+      background: #334155;
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    .btn:active {
+      transform: scale(0.98);
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #0284c7, #2563eb);
+      color: #fff;
+      font-weight: 600;
+      border: none;
+      box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+    }
+
+    .btn-primary:hover {
+      background: linear-gradient(135deg, #0369a1, #1d4ed8);
+      box-shadow: 0 4px 16px rgba(37, 99, 235, 0.45);
+    }
+
+    .btn-danger {
+      background: rgba(239, 68, 68, 0.15);
+      color: #fca5a5;
+      border-color: rgba(239, 68, 68, 0.3);
+    }
+
+    .btn-danger:hover {
+      background: rgba(239, 68, 68, 0.28);
+      color: #fff;
+    }
+
+    .btn-group {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+    }
+
+    .btn-group-3 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 6px;
+    }
+
+    /* Mode selector toggle buttons */
+    .mode-toggle {
+      display: flex;
+      background: rgba(15, 23, 42, 0.7);
+      padding: 3px;
+      border-radius: 10px;
+      border: 1px solid var(--card-border);
+      gap: 4px;
+    }
+
+    .mode-btn {
+      flex: 1;
+      padding: 7px 10px;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-muted);
+      border-radius: 7px;
+      border: none;
+      background: transparent;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      transition: all 0.15s ease;
+    }
+
+    .mode-btn.active {
+      background: #2563eb;
+      color: #fff;
+      box-shadow: 0 2px 8px rgba(37, 99, 235, 0.4);
+    }
+
+    .quick-attach-btn {
+      background: rgba(30, 41, 59, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 6px;
+      padding: 6px 4px;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-main);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s ease;
+    }
+
+    .quick-attach-btn:hover {
+      background: #334155;
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    .quick-attach-btn.active {
+      background: rgba(56, 189, 248, 0.2);
+      border-color: var(--accent-cyan);
+      color: #fff;
+      box-shadow: 0 0 10px rgba(56, 189, 248, 0.3);
+    }
+
+    /* Form rows */
+    .form-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      font-size: 12px;
+    }
+
+    .form-row label {
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+
+    .form-control-input {
+      background: var(--input-bg);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: var(--text-main);
+      padding: 6px 10px;
+      border-radius: 6px;
+      font-size: 12px;
+      width: 130px;
+      outline: none;
+      text-align: right;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .form-control-input:focus {
+      border-color: var(--accent-cyan);
+    }
+
+    select.form-control-input {
+      text-align: left;
+      cursor: pointer;
+      width: 160px;
+    }
+
+    /* Slider row */
+    .slider-row {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .slider-label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .slider-label span.value {
+      color: var(--accent-cyan);
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 600;
+    }
+
+    input[type="range"] {
+      -webkit-appearance: none;
+      width: 100%;
+      height: 5px;
+      background: #334155;
+      border-radius: 3px;
+      outline: none;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 15px;
+      height: 15px;
+      border-radius: 50%;
+      background: var(--accent-cyan);
+      cursor: pointer;
+      box-shadow: 0 0 8px rgba(56, 189, 248, 0.6);
+      transition: transform 0.1s;
+    }
+
+    input[type="range"]::-webkit-slider-thumb:hover {
+      transform: scale(1.2);
+    }
+
+    /* Quick Element Chips */
+    .element-presets {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 6px;
+    }
+
+    .elem-chip {
+      padding: 6px 4px;
+      font-size: 11px;
+      font-weight: 700;
+      border-radius: 6px;
+      text-align: center;
+      cursor: pointer;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      transition: all 0.15s ease;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+    }
+
+    .elem-chip:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+    }
+
+    .elem-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+
+    /* Orbital Selection Grid */
+    .orbital-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 6px;
+    }
+
+    .orbital-btn {
+      background: rgba(30, 41, 59, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 8px;
+      padding: 9px 4px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+    }
+
+    .orbital-btn .symbol {
+      font-size: 13px;
+      font-weight: 700;
+      font-family: 'JetBrains Mono', monospace;
+      color: #fff;
+    }
+
+    .orbital-btn .label {
+      font-size: 10px;
+      color: var(--text-dim);
+    }
+
+    .orbital-btn:hover {
+      background: #334155;
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    .orbital-btn.active {
+      background: rgba(37, 99, 235, 0.25);
+      border-color: #3b82f6;
+      box-shadow: 0 0 12px rgba(59, 130, 246, 0.3);
+    }
+
+    .orbital-btn.active .symbol {
+      color: var(--accent-cyan);
+    }
+
+    /* Atom List Chips inside card */
+    .atom-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      max-height: 110px;
+      overflow-y: auto;
+      padding-right: 4px;
+    }
+
+    .atom-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 8px;
+      background: rgba(15, 23, 42, 0.8);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 6px;
+      font-size: 11px;
+      font-family: 'JetBrains Mono', monospace;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .atom-badge:hover {
+      border-color: var(--accent-cyan);
+    }
+
+    .atom-badge.selected {
+      background: rgba(56, 189, 248, 0.2);
+      border-color: var(--accent-cyan);
+      box-shadow: 0 0 8px rgba(56, 189, 248, 0.3);
+      color: #fff;
+    }
+
+    .badge-color-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+    }
+
+    /* Main Viewport Panel */
+    #viewport-container {
+      flex: 1;
+      height: 100vh;
+      position: relative;
+      background: radial-gradient(circle at 50% 50%, #172033 0%, #080c14 100%);
+      overflow: hidden;
+    }
+
+    #webgl-canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    /* Selection Marquee Box */
+    #selection-marquee {
+      position: absolute;
+      border: 1.5px dashed var(--accent-cyan);
+      background: rgba(56, 189, 248, 0.12);
+      pointer-events: none;
+      display: none;
+      z-index: 10;
+      border-radius: 4px;
+    }
+
+    /* Viewport Top HUD Overlay */
+    .hud-top {
+      position: absolute;
+      top: 16px;
+      left: 20px;
+      right: 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      pointer-events: none;
+      z-index: 15;
+    }
+
+    .hud-card {
+      pointer-events: auto;
+      background: rgba(15, 23, 42, 0.85);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      padding: 8px 14px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    }
+
+    .hud-title {
+      font-size: 12px;
+      font-weight: 600;
+      color: #fff;
+    }
+
+    .hud-pill {
+      font-size: 11px;
+      font-weight: 500;
+      background: rgba(56, 189, 248, 0.15);
+      color: var(--accent-cyan);
+      padding: 3px 8px;
+      border-radius: 6px;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* Teaching Notes Pill & Phase Legend */
+    .phase-legend {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 11px;
+      font-weight: 500;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .legend-color {
+      width: 10px;
+      height: 10px;
+      border-radius: 3px;
+    }
+
+    /* Mode Bar in Top Viewport */
+    .hud-mode-bar {
+      pointer-events: auto;
+      display: flex;
+      background: rgba(15, 23, 42, 0.90);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 12px;
+      padding: 4px;
+      gap: 4px;
+      box-shadow: 0 4px 24px rgba(0, 0, 0, 0.45);
+    }
+
+    .mode-tab {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      border-radius: 8px;
+      border: none;
+      background: transparent;
+      color: var(--text-muted);
+      font-family: inherit;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.18s ease;
+    }
+
+    .mode-tab:hover {
+      background: rgba(255, 255, 255, 0.08);
+      color: #fff;
+    }
+
+    .mode-tab.active {
+      background: var(--accent-cyan);
+      color: #0b0f19;
+      box-shadow: 0 2px 10px rgba(56, 189, 248, 0.4);
+    }
+
+    /* Sidebar Mode Banner */
+    .sidebar-mode-banner {
+      background: rgba(56, 189, 248, 0.08);
+      border: 1px solid rgba(56, 189, 248, 0.2);
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-size: 11px;
+      line-height: 1.45;
+      color: #bae6fd;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+
+    /* Mode Visibility Configuration for Sidebar Panels */
+    body.mode-orbit #teaching-presets-card,
+    body.mode-orbit #atoms-roster-card {
+      display: flex !important;
+    }
+    body.mode-orbit #quick-build-card,
+    body.mode-orbit #manual-build-card,
+    body.mode-orbit #atom-inspector,
+    body.mode-orbit #orbital-select-card,
+    body.mode-orbit #orbital-styling-card,
+    body.mode-orbit #multi-select-card {
+      display: none !important;
+    }
+
+    body.mode-build #quick-build-card,
+    body.mode-build #manual-build-card,
+    body.mode-build #atom-inspector,
+    body.mode-build #orbital-select-card,
+    body.mode-build #orbital-styling-card,
+    body.mode-build #atoms-roster-card {
+      display: flex !important;
+    }
+    body.mode-build #teaching-presets-card,
+    body.mode-build #multi-select-card {
+      display: none !important;
+    }
+
+    body.mode-box #multi-select-card,
+    body.mode-box #atom-inspector,
+    body.mode-box #atoms-roster-card {
+      display: flex !important;
+    }
+    body.mode-box #teaching-presets-card,
+    body.mode-box #quick-build-card,
+    body.mode-box #manual-build-card,
+    body.mode-box #orbital-select-card,
+    body.mode-box #orbital-styling-card {
+      display: none !important;
+    }
+
+    /* Bottom Control Tips Overlay */
+    .control-tips {
+      position: absolute;
+      bottom: 16px;
+      left: 20px;
+      pointer-events: none;
+      background: rgba(15, 23, 42, 0.75);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 8px;
+      padding: 8px 14px;
+      font-size: 11px;
+      color: var(--text-muted);
+      display: flex;
+      gap: 16px;
+      z-index: 15;
+    }
+
+    .control-tips span {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .kbd {
+      background: #1e293b;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 4px;
+      padding: 1px 5px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      color: #fff;
+    }
+
+    /* Color picker wrapper */
+    .color-picker-wrapper {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    input[type="color"] {
+      -webkit-appearance: none;
+      border: none;
+      width: 28px;
+      height: 28px;
+      border-radius: 6px;
+      cursor: pointer;
+      background: transparent;
+    }
+
+    input[type="color"]::-webkit-color-swatch-wrapper {
+      padding: 0;
+    }
+
+    input[type="color"]::-webkit-color-swatch {
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 6px;
+    }
+
+    /* Teaching tooltips/info callout */
+    .chem-info-box {
+      background: rgba(56, 189, 248, 0.06);
+      border-left: 3px solid var(--accent-cyan);
+      border-radius: 0 8px 8px 0;
+      padding: 10px 12px;
+      font-size: 11px;
+      line-height: 1.5;
+      color: #bae6fd;
+    }
+
+    .chem-info-box strong {
+      color: #fff;
+    }
+
+    /* Floating Toast Notification */
+    .toast-notification {
+      position: absolute;
+      bottom: 56px;
+      left: 50%;
+      transform: translateX(-50%) translateY(16px);
+      background: rgba(15, 23, 42, 0.94);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid var(--accent-cyan);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5), 0 0 16px rgba(56, 189, 248, 0.25);
+      border-radius: 20px;
+      padding: 7px 18px;
+      font-size: 12px;
+      font-weight: 600;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      pointer-events: none;
+      opacity: 0;
+      transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+      z-index: 30;
+      font-family: 'Inter', sans-serif;
+    }
+
+    .toast-notification.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Left Sidebar Panel -->
+  <aside id="sidebar">
+    <div class="sidebar-header">
+      <div class="brand">
+        <div class="brand-icon">⚛️</div>
+        <div>
+          <h1 class="brand-title">ChemOrbital 3D</h1>
+          <div class="brand-subtitle">Gen Chem 1 Orbitals</div>
+        </div>
+      </div>
+      <button class="btn" id="reset-cam-btn" title="Reset Camera View">⟲ Center</button>
+    </div>
+
+    <div class="sidebar-content">
+
+      <!-- Dynamic Mode Status Banner -->
+      <div class="sidebar-mode-banner" id="sidebar-mode-banner">
+        <span>🔄</span>
+        <div><strong>Orbit Mode:</strong> Inspect 3D orbitals & molecules. Use teaching demos below.</div>
+      </div>
+
+      <!-- Preset Scenarios (Visible in Orbit Mode) -->
+      <div class="section-card" id="teaching-presets-card">
+        <div class="section-title">
+          <span>Teaching Quick-Demos</span>
+          <span>🧪</span>
+        </div>
+        <div style="font-size: 11px; color: var(--text-muted); line-height: 1.4; margin-bottom: 6px;">
+          Select standard textbook molecules & advanced carbon conformations:
+        </div>
+        <div class="btn-group" style="display: grid; grid-template-columns: 1fr 1fr; gap: 5px;">
+          <button class="btn" id="preset-sp3-ch4">CH₄ (sp³ Tetra)</button>
+          <button class="btn" id="preset-sp2-c2h4" style="border-color: #84cc16;">C₂H₄ (sp² + π-Bridge)</button>
+          <button class="btn" id="preset-sp-c2h2" style="border-color: #84cc16;">C₂H₂ (sp + 2π-Bonds)</button>
+          <button class="btn" id="preset-benzene" style="border-color: #38bdf8;">Benzene C₆H₆ (π-Ring)</button>
+          <button class="btn" id="preset-cyclohexane-chair" style="border-color: #84cc16;">Cyclohexane (Chair)</button>
+          <button class="btn" id="preset-cyclohexane-boat" style="border-color: #f59e0b;">Cyclohexane (Boat)</button>
+          <button class="btn" id="preset-graphene" style="border-color: #a855f7; grid-column: span 2;">Graphene Sheets (3-Layer Honeycomb)</button>
+          <button class="btn" id="preset-sp3d-pcl5">PCl₅ (sp³d Trig Bip)</button>
+          <button class="btn" id="preset-sp3d2-sf6">SF₆ (sp³d² Octa)</button>
+          <button class="btn" id="preset-h2o">H₂O (sp³ Bent Lone Pairs)</button>
+          <button class="btn" id="preset-d-orbitals">All 5 d-Orbitals (+ Nodal)</button>
+        </div>
+      </div>
+
+      <!-- Multiple Selection & Hybridization / π-Bond Card (Visible in Multiple Selection Mode) -->
+      <div class="section-card" id="multi-select-card" style="display: none;">
+        <div class="section-title">
+          <span>⬚ Multiple Selection Mode</span>
+          <span id="multi-select-count-badge" style="font-size: 11px; color: var(--accent-cyan); font-family: 'JetBrains Mono', monospace;">0 Selected</span>
+        </div>
+
+        <div style="font-size: 11px; color: var(--text-muted); line-height: 1.45;">
+          • <span class="kbd">Shift + Double Click</span> select all atoms of same element (H, C, etc.)<br>
+          • <span class="kbd">Shift + Drag</span> on canvas to box-select multiple atoms<br>
+          • <span class="kbd">Ctrl + Click</span> to toggle atoms one-by-one
+        </div>
+
+        <!-- Selection Controls -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
+          <button class="btn" id="multi-select-all-btn">Select All Atoms</button>
+          <button class="btn" id="multi-deselect-all-btn">Deselect All</button>
+        </div>
+
+        <!-- π-Bond & Orbital Bridging (Highlighted) -->
+        <div style="background: rgba(132, 204, 22, 0.08); border: 1px solid rgba(132, 204, 22, 0.25); border-radius: 8px; padding: 10px; display: flex; flex-direction: column; gap: 8px;">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span style="font-size: 11px; font-weight: 700; color: #84cc16;">⚡ Hybridization & π-Bonding</span>
+            <span style="font-size: 10px; color: #84cc16;">C₂H₄, C₂H₂, Ring</span>
+          </div>
+          <div style="font-size: 10px; color: var(--text-muted); line-height: 1.4;">
+            Overlap parallel p-orbitals between selected atoms. In-phase lobes (+ with +, − with −) form a bonding π cloud; opposite phases form an antibonding π* nodal plane:
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr auto; gap: 5px;">
+            <button class="btn btn-primary" id="bridge-orbitals-btn" style="background: #84cc16; color: #0b0f19; font-weight: 700; font-size: 11px;">
+              🔗 Overlap (π / π*)
+            </button>
+            <button class="btn" id="align-phases-btn" style="border-color: #38bdf8; font-size: 11px;" title="Rotate second atom 180° to align same-phase lobes (+ with +, − with −) for bonding">
+              🔄 Align Phases (180°)
+            </button>
+            <button class="btn" id="clear-bridges-btn" title="Clear all π-bond bridges & nodal planes">🧹 Clear</button>
+          </div>
+          <div style="font-size: 10px; color: var(--text-muted); line-height: 1.35; background: rgba(0,0,0,0.22); padding: 5px 8px; border-radius: 4px;">
+            • <strong style="color: #ef4444;">Red</strong> + <strong style="color: #ef4444;">Red</strong>: <strong>Bonding π</strong> (Continuous cloud)<br>
+            • <strong style="color: #ef4444;">Red</strong> + <strong style="color: #3b82f6;">Blue</strong>: <strong>Antibonding π*</strong> (Vertical Nodal Plane)
+          </div>
+        </div>
+
+        <!-- Batch Property Adjustments -->
+        <div style="font-size: 11px; font-weight: 700; color: #fff; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 4px;">
+          Apply Properties to All Selected:
+        </div>
+
+        <!-- Batch Color Picker -->
+        <div class="form-row">
+          <label>Batch Color:</label>
+          <div class="color-picker-wrapper">
+            <input type="color" id="batch-color-input" value="#334155">
+            <span style="font-size: 11px; color: var(--text-muted);">Apply color</span>
+          </div>
+        </div>
+
+        <!-- Batch Orbital Type Selection -->
+        <div style="font-size: 11px; color: var(--text-muted);">Batch Orbital Hybridization:</div>
+        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px;">
+          <button class="btn batch-orb-btn" data-orbital="none">None</button>
+          <button class="btn batch-orb-btn" data-orbital="s">s</button>
+          <button class="btn batch-orb-btn" data-orbital="pz">p<sub>z</sub></button>
+          <button class="btn batch-orb-btn" data-orbital="p_all">All p</button>
+          <button class="btn batch-orb-btn" data-orbital="sp">sp</button>
+          <button class="btn batch-orb-btn" data-orbital="sp2">sp²</button>
+          <button class="btn batch-orb-btn" data-orbital="sp3">sp³</button>
+          <button class="btn batch-orb-btn" data-orbital="sp3d">sp³d</button>
+        </div>
+
+        <!-- Batch Outlines and Nodal -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
+          <button class="btn" id="batch-outline-toggle-btn">📐 Toggle Outlines</button>
+          <button class="btn" id="batch-nodal-toggle-btn">⚪ Toggle Nodal</button>
+        </div>
+
+        <!-- Batch Duplicate / Delete -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 4px;">
+          <button class="btn" id="batch-duplicate-btn">📋 Duplicate All</button>
+          <button class="btn btn-danger" id="batch-delete-btn">🗑️ Delete All</button>
+        </div>
+      </div>
+
+      <!-- Quick Build Toolbar (Visible in Build Mode) -->
+      <div class="section-card" id="quick-build-card">
+        <div class="section-title">
+          <span>⚡ Quick Build Tool</span>
+          <span id="quick-build-indicator" style="font-size: 10px; color: #84cc16; font-weight: 600;">ACTIVE</span>
+        </div>
+        <div style="font-size: 11px; color: var(--text-muted); line-height: 1.4;">
+          Click directly on any orbital lobe in 3D to instantly attach a bonding atom:
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 6px; margin-top: 6px;">
+          <div style="font-size: 10px; font-weight: 700; color: #fff; text-transform: uppercase; letter-spacing: 0.5px;">Attach on Lobe Click:</div>
+          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px;">
+            <button class="quick-attach-btn active" data-elem="H" data-orbital="s" title="Hydrogen with 1s orbital">⚪ H (1s)</button>
+            <button class="quick-attach-btn" data-elem="C" data-orbital="sp3" title="Carbon with sp³ tetrahedral orbitals">⚫ C (sp³)</button>
+            <button class="quick-attach-btn" data-elem="C" data-orbital="sp2" title="Carbon with sp² planar + pz (auto-aligned)">⚫ C (sp²)</button>
+            <button class="quick-attach-btn" data-elem="C" data-orbital="sp" title="Carbon with sp linear + 2p">⚫ C (sp)</button>
+            <button class="quick-attach-btn" data-elem="O" data-orbital="sp3" title="Oxygen with sp³ bent lone pairs">🔴 O (sp³)</button>
+            <button class="quick-attach-btn" data-elem="N" data-orbital="sp3" title="Nitrogen with sp³ pyramidal">🔵 N (sp³)</button>
+            <button class="quick-attach-btn" data-elem="S" data-orbital="sp3d2" title="Sulfur with sp³d² octahedral">🟡 S (sp³d²)</button>
+            <button class="quick-attach-btn" data-elem="P" data-orbital="sp3d" title="Phosphorus with sp³d trig bipyram">🟠 P (sp³d)</button>
+            <button class="quick-attach-btn" data-elem="F" data-orbital="pz" title="Fluorine with pz orbital">🟢 F (p)</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Manual Atom Tools (Visible in Build Mode) -->
+      <div class="section-card" id="manual-build-card">
+        <div class="section-title">
+          <span>Manual Atom Addition</span>
+          <button class="btn btn-primary" id="add-atom-btn" style="padding: 4px 8px; font-size: 11px;">+ Add Atom</button>
+        </div>
+        <div style="font-size: 11px; color: var(--text-muted);">Quick Element Type:</div>
+        <div class="element-presets">
+          <div class="elem-chip" data-name="C" data-color="#334155" title="Carbon (C)">
+            <span class="elem-dot" style="background:#475569;"></span>
+            <span>C</span>
+          </div>
+          <div class="elem-chip" data-name="H" data-color="#ffffff" title="Hydrogen (H)">
+            <span class="elem-dot" style="background:#ffffff;"></span>
+            <span>H</span>
+          </div>
+          <div class="elem-chip" data-name="O" data-color="#ef4444" title="Oxygen (O)">
+            <span class="elem-dot" style="background:#ef4444;"></span>
+            <span>O</span>
+          </div>
+          <div class="elem-chip" data-name="N" data-color="#3b82f6" title="Nitrogen (N)">
+            <span class="elem-dot" style="background:#3b82f6;"></span>
+            <span>N</span>
+          </div>
+          <div class="elem-chip" data-name="S" data-color="#eab308" title="Sulfur (S)">
+            <span class="elem-dot" style="background:#eab308;"></span>
+            <span>S</span>
+          </div>
+          <div class="elem-chip" data-name="P" data-color="#f97316" title="Phosphorus (P)">
+            <span class="elem-dot" style="background:#f97316;"></span>
+            <span>P</span>
+          </div>
+          <div class="elem-chip" data-name="F" data-color="#06b6d4" title="Fluorine (F)">
+            <span class="elem-dot" style="background:#06b6d4;"></span>
+            <span>F</span>
+          </div>
+          <div class="elem-chip" data-name="Cl" data-color="#10b981" title="Chlorine (Cl)">
+            <span class="elem-dot" style="background:#10b981;"></span>
+            <span>Cl</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Atom Management Roster (Always Visible) -->
+      <div class="section-card" id="atoms-roster-card">
+        <div class="section-title">
+          <span>Atoms (<span id="atom-count">0</span>)</span>
+          <button class="btn btn-danger" id="clear-all-btn" style="padding: 4px 8px; font-size: 11px;" title="Clear all atoms from the board">🗑️ Clear Board</button>
+        </div>
+
+        <!-- Atom Selection Badges -->
+        <div class="atom-list" id="atom-badges-list">
+          <!-- Populated dynamically -->
+        </div>
+
+        <div class="btn-group" id="atom-actions-group" style="display: none; margin-top: 6px;">
+          <button class="btn" id="dup-atom-btn">Duplicate</button>
+          <button class="btn btn-danger" id="del-atom-btn">Delete Atom</button>
+        </div>
+      </div>
+
+      <!-- Selected Atom Inspector & Properties (Visible in Build Mode) -->
+      <div class="section-card" id="atom-inspector">
+        <div class="section-title">
+          <span>Selected Atom Properties</span>
+          <span id="selected-atom-label" style="color: var(--accent-cyan); font-family: 'JetBrains Mono', monospace;">None</span>
+        </div>
+
+        <div id="inspector-body" style="display: flex; flex-direction: column; gap: 10px;">
+          <!-- Atom Color and Element -->
+          <div class="form-row">
+            <label>Color & Element:</label>
+            <div class="color-picker-wrapper">
+              <input type="color" id="atom-color-input" value="#334155">
+              <input type="text" id="atom-name-input" class="form-control-input" style="width: 70px;" value="C1">
+            </div>
+          </div>
+
+          <!-- Position (X, Y, Z) -->
+          <div class="slider-row">
+            <div class="slider-label">
+              <span>Position X:</span>
+              <span class="value" id="pos-x-val">0.0</span>
+            </div>
+            <input type="range" id="pos-x-slider" min="-6" max="6" step="0.2" value="0">
+          </div>
+
+          <div class="slider-row">
+            <div class="slider-label">
+              <span>Position Y:</span>
+              <span class="value" id="pos-y-val">0.0</span>
+            </div>
+            <input type="range" id="pos-y-slider" min="-6" max="6" step="0.2" value="0">
+          </div>
+
+          <div class="slider-row">
+            <div class="slider-label">
+              <span>Position Z:</span>
+              <span class="value" id="pos-z-val">0.0</span>
+            </div>
+            <input type="range" id="pos-z-slider" min="-6" max="6" step="0.2" value="0">
+          </div>
+
+          <!-- Orientation / Rotation (Degrees) -->
+          <div style="font-size: 11px; font-weight: 600; color: var(--text-muted); margin-top: 4px; padding-top: 6px; border-top: 1px solid rgba(255, 255, 255, 0.08);">
+            Atom Orientation (Rotation):
+          </div>
+
+          <div class="slider-row">
+            <div class="slider-label">
+              <span>Rotation X:</span>
+              <span class="value" id="rot-x-val">0°</span>
+            </div>
+            <input type="range" id="rot-x-slider" min="-180" max="180" step="5" value="0">
+          </div>
+
+          <div class="slider-row">
+            <div class="slider-label">
+              <span>Rotation Y:</span>
+              <span class="value" id="rot-y-val">0°</span>
+            </div>
+            <input type="range" id="rot-y-slider" min="-180" max="180" step="5" value="0">
+          </div>
+
+          <div class="slider-row">
+            <div class="slider-label">
+              <span>Rotation Z:</span>
+              <span class="value" id="rot-z-val">0°</span>
+            </div>
+            <input type="range" id="rot-z-slider" min="-180" max="180" step="5" value="0">
+          </div>
+
+          <div style="font-size: 11px; font-weight: 600; color: var(--text-muted); margin-top: 4px;">
+            Quick Step Rotation (Per-Axis):
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 4px;">
+            <!-- X row -->
+            <div style="display: grid; grid-template-columns: 24px 1fr 1fr 1fr; gap: 4px; align-items: center;">
+              <span style="font-size: 11px; font-weight: 700; color: #ef4444; font-family: monospace;">X:</span>
+              <button class="btn rot-step-btn" data-axis="x" data-deg="90" style="padding: 3px; font-size: 10px;" title="Rotate +90° around X">+90°</button>
+              <button class="btn rot-step-btn" data-axis="x" data-deg="-90" style="padding: 3px; font-size: 10px;" title="Rotate -90° around X">-90°</button>
+              <button class="btn rot-step-btn" data-axis="x" data-deg="180" style="padding: 3px; font-size: 10px;" title="Rotate 180° around X">180°</button>
+            </div>
+            <!-- Y row -->
+            <div style="display: grid; grid-template-columns: 24px 1fr 1fr 1fr; gap: 4px; align-items: center;">
+              <span style="font-size: 11px; font-weight: 700; color: #10b981; font-family: monospace;">Y:</span>
+              <button class="btn rot-step-btn" data-axis="y" data-deg="90" style="padding: 3px; font-size: 10px;" title="Rotate +90° around Y">+90°</button>
+              <button class="btn rot-step-btn" data-axis="y" data-deg="-90" style="padding: 3px; font-size: 10px;" title="Rotate -90° around Y">-90°</button>
+              <button class="btn rot-step-btn" data-axis="y" data-deg="180" style="padding: 3px; font-size: 10px;" title="Rotate 180° around Y">180°</button>
+            </div>
+            <!-- Z row -->
+            <div style="display: grid; grid-template-columns: 24px 1fr 1fr 1fr; gap: 4px; align-items: center;">
+              <span style="font-size: 11px; font-weight: 700; color: #3b82f6; font-family: monospace;">Z:</span>
+              <button class="btn rot-step-btn" data-axis="z" data-deg="90" style="padding: 3px; font-size: 10px;" title="Rotate +90° around Z">+90°</button>
+              <button class="btn rot-step-btn" data-axis="z" data-deg="-90" style="padding: 3px; font-size: 10px;" title="Rotate -90° around Z">-90°</button>
+              <button class="btn rot-step-btn" data-axis="z" data-deg="180" style="padding: 3px; font-size: 10px;" title="Rotate 180° around Z">180°</button>
+            </div>
+            <button class="btn" id="rot-quick-reset" style="padding: 4px; font-size: 10px; margin-top: 2px;" title="Reset Rotation to 0°">Reset All Rotation (0°)</button>
+          </div>
+
+          <div class="slider-row">
+            <div class="slider-label">
+              <span>Nucleus Size:</span>
+              <span class="value" id="atom-radius-val">0.45</span>
+            </div>
+            <input type="range" id="atom-radius-slider" min="0.2" max="1.0" step="0.05" value="0.45">
+          </div>
+
+          <!-- Geometric Arrangement Outline (Per-Atom Toggle) -->
+          <div class="form-row" id="atom-arrangement-row" style="padding-top: 10px; border-top: 1px solid rgba(255, 255, 255, 0.08);">
+            <div style="display: flex; flex-direction: column; gap: 2px;">
+              <label for="atom-arrangement-check" style="cursor: pointer; font-weight: 500; color: #fff; display: flex; align-items: center; gap: 6px;">
+                <span>📐 Geometric Outline:</span>
+              </label>
+              <span id="atom-arrangement-type" style="font-size: 11px; font-family: 'JetBrains Mono', monospace; color: var(--accent-cyan);">[Tetrahedral • 4 regions]</span>
+            </div>
+            <input type="checkbox" id="atom-arrangement-check" style="cursor: pointer; width: 18px; height: 18px;">
+          </div>
+
+          <!-- Nodal Surfaces (Per-Atom Toggle) -->
+          <div class="form-row" id="atom-nodal-row" style="padding-top: 8px; border-top: 1px solid rgba(255, 255, 255, 0.08);">
+            <div style="display: flex; flex-direction: column; gap: 2px;">
+              <label for="atom-nodal-check" style="cursor: pointer; font-weight: 500; color: #fff; display: flex; align-items: center; gap: 6px;">
+                <span>⚪ Nodal Surfaces:</span>
+              </label>
+              <span id="atom-nodal-type" style="font-size: 11px; font-family: 'JetBrains Mono', monospace; color: var(--accent-cyan);">[2 Nodal Planes]</span>
+            </div>
+            <input type="checkbox" id="atom-nodal-check" style="cursor: pointer; width: 18px; height: 18px;">
+          </div>
+        </div>
+      </div>
+
+      <!-- Orbital Selection Section (Visible in Build Mode) -->
+      <div class="section-card" id="orbital-select-card">
+        <div class="section-title">
+          <span>Select Orbital to Display</span>
+          <span>⚡</span>
+        </div>
+
+        <div style="font-size: 11px; color: var(--text-muted);">Atomic & Hybrid Orbitals:</div>
+
+        <div class="orbital-grid">
+          <div class="orbital-btn active" data-orbital="none">
+            <span class="symbol">∅</span>
+            <span class="label">None</span>
+          </div>
+          <div class="orbital-btn" data-orbital="s">
+            <span class="symbol">s</span>
+            <span class="label">Spherical</span>
+          </div>
+          <div class="orbital-btn" data-orbital="px">
+            <span class="symbol">p<sub>x</sub></span>
+            <span class="label">X-Axis</span>
+          </div>
+          <div class="orbital-btn" data-orbital="py">
+            <span class="symbol">p<sub>y</sub></span>
+            <span class="label">Y-Axis</span>
+          </div>
+          <div class="orbital-btn" data-orbital="pz">
+            <span class="symbol">p<sub>z</sub></span>
+            <span class="label">Z-Axis</span>
+          </div>
+          <div class="orbital-btn" data-orbital="p_all">
+            <span class="symbol">p<sub>x,y,z</sub></span>
+            <span class="label">All 3 pairs</span>
+          </div>
+          <div class="orbital-btn" data-orbital="sp">
+            <span class="symbol">sp</span>
+            <span class="label">Linear 180°</span>
+          </div>
+          <div class="orbital-btn" data-orbital="sp2">
+            <span class="symbol">sp²</span>
+            <span class="label">Trigonal 120°</span>
+          </div>
+          <div class="orbital-btn" data-orbital="sp3">
+            <span class="symbol">sp³</span>
+            <span class="label">Tetra 109.5°</span>
+          </div>
+          <div class="orbital-btn" data-orbital="sp3d">
+            <span class="symbol">sp³d</span>
+            <span class="label">Trig Bipyram</span>
+          </div>
+          <div class="orbital-btn" data-orbital="sp3d2">
+            <span class="symbol">sp³d²</span>
+            <span class="label">Octahedral</span>
+          </div>
+          <div class="orbital-btn" data-orbital="dxy">
+            <span class="symbol">d<sub>xy</sub></span>
+            <span class="label">In XY Plane</span>
+          </div>
+          <div class="orbital-btn" data-orbital="dxz">
+            <span class="symbol">d<sub>xz</sub></span>
+            <span class="label">In XZ Plane</span>
+          </div>
+          <div class="orbital-btn" data-orbital="dyz">
+            <span class="symbol">d<sub>yz</sub></span>
+            <span class="label">In YZ Plane</span>
+          </div>
+          <div class="orbital-btn" data-orbital="dx2y2">
+            <span class="symbol">d<sub>x²-y²</sub></span>
+            <span class="label">Along X & Y</span>
+          </div>
+          <div class="orbital-btn" data-orbital="dz2">
+            <span class="symbol">d<sub>z²</sub></span>
+            <span class="label">Z-Dumbbell+Donut</span>
+          </div>
+        </div>
+
+        <!-- Teaching info callout dynamically updated -->
+        <div class="chem-info-box" id="orbital-desc-box">
+          <strong>No orbital selected.</strong><br>
+          Select an orbital above to render its 3D electron probability cloud and nodal characteristics.
+        </div>
+      </div>
+
+      <!-- Orbital Appearance Controls (Visible in Build Mode) -->
+      <div class="section-card" id="orbital-styling-card">
+        <div class="section-title">
+          <span>Orbital Styling</span>
+          <span>🎨</span>
+        </div>
+
+        <div class="slider-row">
+          <div class="slider-label">
+            <span>Orbital Scale (Size):</span>
+            <span class="value" id="orb-scale-val">1.0×</span>
+          </div>
+          <input type="range" id="orb-scale-slider" min="0.5" max="2.5" step="0.1" value="1.0">
+        </div>
+
+        <div class="slider-row">
+          <div class="slider-label">
+            <span>Transparency / Opacity:</span>
+            <span class="value" id="orb-opacity-val">0.15</span>
+          </div>
+          <input type="range" id="orb-opacity-slider" min="0.05" max="0.95" step="0.05" value="0.15">
+        </div>
+
+        <div class="form-row" id="selected-outline-sync-row">
+          <label style="display: flex; flex-direction: column;">
+            <span>Arrangement Outline (Selected):</span>
+            <span id="selected-outline-sync-desc" style="font-size: 10px; color: var(--accent-cyan);">Toggle for active atom</span>
+          </label>
+          <input type="checkbox" id="show-selected-outline-check" style="cursor: pointer; width: 18px; height: 18px;">
+        </div>
+
+        <div class="form-row" id="selected-nodal-sync-row">
+          <label style="display: flex; flex-direction: column;">
+            <span>Nodal Surfaces (Selected):</span>
+            <span id="selected-nodal-sync-desc" style="font-size: 10px; color: var(--accent-cyan);">Toggle for active atom</span>
+          </label>
+          <input type="checkbox" id="show-selected-nodal-check" style="cursor: pointer; width: 18px; height: 18px;">
+        </div>
+
+        <div class="form-row">
+          <label>Show Hybrid Minor Back-Lobes:</label>
+          <input type="checkbox" id="show-back-lobes-check" style="cursor: pointer; width: 18px; height: 18px;">
+        </div>
+
+        <div class="form-row">
+          <label>Show π Unhybridized p:</label>
+          <input type="checkbox" id="show-unhybrid-p-check" style="cursor: pointer; width: 18px; height: 18px;" checked>
+        </div>
+      </div>
+
+    </div>
+  </aside>
+
+  <!-- Main 3D Viewport Panel -->
+  <main id="viewport-container">
+    <div id="selection-marquee"></div>
+
+    <!-- Top HUD Overlay with Mode Switcher Bar -->
+    <div class="hud-top">
+      <div style="display: flex; gap: 10px; align-items: center; pointer-events: auto;">
+        <div class="hud-card">
+          <div class="hud-title">Target:</div>
+          <div class="hud-pill" id="hud-selected-text">No atom selected (Click an atom)</div>
+        </div>
+
+        <div class="hud-card">
+          <div class="phase-legend">
+            <span style="color: var(--text-muted); font-size: 11px;">Phase (ψ):</span>
+            <div class="legend-item"><span class="legend-color" style="background:#ef4444;"></span><span>+ Phase (Red)</span></div>
+            <div class="legend-item"><span class="legend-color" style="background:#3b82f6;"></span><span>− Phase (Blue)</span></div>
+            <div class="legend-item"><span class="legend-color" style="background:#84cc16;"></span><span>π-Bond</span></div>
+            <div class="legend-item"><span class="legend-color" style="background:#f472b6;"></span><span>π* Node</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Interaction Mode Bar in Viewport Top Right -->
+      <div class="hud-mode-bar" id="hud-mode-bar">
+        <button class="mode-tab active" id="mode-orbit-btn" title="Orbit Mode: Inspect & Rotate 3D View">
+          <span>🔄 Orbit</span>
+        </button>
+        <button class="mode-tab" id="mode-build-btn" title="Build Mode: Click lobes to attach, manual atom add & edit properties">
+          <span>🔨 Build</span>
+        </button>
+        <button class="mode-tab" id="mode-box-btn" title="Multiple Selection: Box select, batch edit & bridge π-orbitals">
+          <span>⬚ Multiple Selection</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Bottom Control Helper Tips -->
+    <div class="control-tips">
+      <span><span class="kbd">Left Click</span> Select Atom</span>
+      <span><span class="kbd">Shift + DblClick</span> Select All of Type</span>
+      <span><span class="kbd">Ctrl + Click</span> Multi-Select</span>
+      <span><span class="kbd">Shift + Drag</span> Box Select</span>
+      <span><span class="kbd">Left Drag</span> Orbit</span>
+      <span><span class="kbd">Right Drag</span> Pan</span>
+      <span><span class="kbd">Scroll</span> Zoom</span>
+    </div>
+
+    <!-- Floating Feedback Toast -->
+    <div id="toast-notification" class="toast-notification"></div>
+
+    <!-- WebGL Canvas will be injected here -->
+  </main>
+
+  <script>
+    /* =========================================================================
+       ChemOrbital 3D: Architecture & State Management
+       ========================================================================= */
+
+    // Chemical descriptions for Gen Chem 1 students
+    const ORBITAL_DESCRIPTIONS = {
+      none: "<strong>Nucleus only:</strong> No electron orbital displayed. Choose an orbital above to view its boundary surface.",
+      s: "<strong>s Orbital (l = 0):</strong> Spherically symmetric. Has zero angular nodes. Probability of finding electron is uniform in all directions at distance r.",
+      px: "<strong>p<sub>x</sub> Orbital (l = 1, m = ±1):</strong> Dumbbell-shaped oriented along the X-axis. Has 1 angular nodal plane (the YZ plane where ψ = 0). Opposite lobes have opposite mathematical phases (+ / −).",
+      py: "<strong>p<sub>y</sub> Orbital (l = 1, m = ±1):</strong> Dumbbell-shaped oriented along the Y-axis. Nodal plane is the XZ plane.",
+      pz: "<strong>p<sub>z</sub> Orbital (l = 1, m = 0):</strong> Dumbbell-shaped oriented along the Z-axis. Nodal plane is the XY plane.",
+      p_all: "<strong>All 3 p Orbitals (p<sub>x</sub>, p<sub>y</sub>, p<sub>z</sub>):</strong> The degenerate set of 3 p orbitals orthogonal to each other. Combined together with 6 electrons, they form a spherically symmetric subshell.",
+      sp: "<strong>sp Hybridization (Linear • 2 Regions):</strong> 2 equivalent hybrid lobes at <strong>180°</strong>. Mixes 1 s and 1 p orbital. Two unhybridized p orbitals remain ready for two π bonds (Acetylene C₂H₂). <em>Toggle 'Geometric Outline' to display the linear arrangement line.</em>",
+      sp2: "<strong>sp² Hybridization (Trigonal Planar • 3 Regions):</strong> 3 hybrid lobes in a plane at <strong>120°</strong>. Mixes 1 s and 2 p orbitals. One unhybridized p<sub>z</sub> orbital remains perpendicular for a π bond (Ethylene C₂H₄). <em>Toggle 'Geometric Outline' to display the triangular envelope.</em>",
+      sp3: "<strong>sp³ Hybridization (Tetrahedral • 4 Regions):</strong> 4 equivalent hybrid lobes pointing to corners of a regular tetrahedron at <strong>109.5°</strong>. Mixes 1 s and 3 p orbitals (Methane CH₄, Water H₂O). <em>Toggle 'Geometric Outline' to display the tetrahedral envelope.</em>",
+      sp3d: "<strong>sp³d Hybridization (Trigonal Bipyramidal • 5 Regions):</strong> 5 hybrid orbitals: 3 equatorial at 120° and 2 axial at 90° (as in PCl₅). <em>Toggle 'Geometric Outline' to display the trigonal bipyramid envelope.</em>",
+      sp3d2: "<strong>sp³d² Hybridization (Octahedral • 6 Regions):</strong> 6 equivalent hybrid orbitals pointing along ±X, ±Y, ±Z at 90° (as in SF₆). <em>Toggle 'Geometric Outline' to display the octahedral envelope.</em>",
+      dxy: "<strong>d<sub>xy</sub> Orbital (l = 2, m = -2):</strong> 4 cloverleaf lobes lying in the XY plane between the X and Y axes. Has <strong>2 perpendicular nodal planes</strong>: the XZ plane (y = 0) and the YZ plane (x = 0). Opposite quadrants have opposite phases (+ / −).",
+      dxz: "<strong>d<sub>xz</sub> Orbital (l = 2, m = +1):</strong> 4 cloverleaf lobes lying in the XZ plane between the X and Z axes. Has <strong>2 perpendicular nodal planes</strong>: the XY plane (z = 0) and the YZ plane (x = 0).",
+      dyz: "<strong>d<sub>yz</sub> Orbital (l = 2, m = -1):</strong> 4 cloverleaf lobes lying in the YZ plane between the Y and Z axes. Has <strong>2 perpendicular nodal planes</strong>: the XY plane (z = 0) and the XZ plane (y = 0).",
+      dx2y2: "<strong>d<sub>x²-y²</sub> Orbital (l = 2, m = +2):</strong> 4 cloverleaf lobes lying directly ALONG the X and Y coordinate axes. Has <strong>2 perpendicular nodal planes</strong> oriented at 45° bisecting the axes (planes x = y and x = -y).",
+      dz2: "<strong>d<sub>z²</sub> Orbital (l = 2, m = 0):</strong> Two dumbbell lobes along the Z axis (+) surrounded by an equatorial donut torus (-) in the XY plane. Has <strong>2 conical nodal surfaces</strong> meeting at the nucleus with half-angle θ = 54.74° (where 3cos²θ - 1 = 0)."
+    };
+
+    // Metadata for Angular Nodal Surfaces (Textbook-Accurate Planes & Cones)
+    const NODAL_INFO = {
+      px: { count: 1, type: '1 Nodal Plane (YZ)', desc: 'YZ plane (x = 0)' },
+      py: { count: 1, type: '1 Nodal Plane (XZ)', desc: 'XZ plane (y = 0)' },
+      pz: { count: 1, type: '1 Nodal Plane (XY)', desc: 'XY plane (z = 0)' },
+      p_all: { count: 3, type: '3 Nodal Planes', desc: 'XY, YZ, XZ coordinate planes' },
+      dxy: { count: 2, type: '2 Nodal Planes', desc: 'XZ (y=0) & YZ (x=0) planes' },
+      dxz: { count: 2, type: '2 Nodal Planes', desc: 'XY (z=0) & YZ (x=0) planes' },
+      dyz: { count: 2, type: '2 Nodal Planes', desc: 'XY (z=0) & XZ (y=0) planes' },
+      dx2y2: { count: 2, type: '2 Nodal Planes', desc: 'Planes at 45° (x±y=0)' },
+      dz2: { count: 2, type: '2 Conical Surfaces', desc: 'Cones at θ = 54.74° (3cos²θ - 1 = 0)' }
+    };
+
+    // Metadata for Hybridization & VSEPR Geometric Arrangements
+    const ARRANGEMENT_INFO = {
+      sp: { name: 'Linear', regions: 2, angle: '180°', desc: 'Linear arrangement connecting 2 lobe tips' },
+      sp2: { name: 'Trigonal Planar', regions: 3, angle: '120°', desc: 'Equilateral triangle connecting 3 lobe tips' },
+      sp3: { name: 'Tetrahedral', regions: 4, angle: '109.5°', desc: 'Regular tetrahedron connecting 4 lobe tips' },
+      sp3d: { name: 'Trigonal Bipyramidal', regions: 5, angle: '90° & 120°', desc: 'Trigonal bipyramid connecting 3 equatorial and 2 axial tips' },
+      sp3d2: { name: 'Octahedral', regions: 6, angle: '90°', desc: 'Regular octahedron connecting 6 lobe tips' }
+    };
+
+    // Color Constants for Wavefunction Phases (Matching textbook media_1790256510078.png)
+    const COLOR_POS_PHASE = 0xef4444; // Red / Coral (+)
+    const COLOR_NEG_PHASE = 0x3b82f6; // Blue (-)
+    const COLOR_SELECTION_RING = 0x38bdf8;
+
+    // Application State
+    const state = {
+      atoms: [],
+      selectedIds: new Set(),
+      mode: 'orbit', // 'orbit', 'build', or 'box'
+      orbitalScale: 1.0,
+      orbitalOpacity: 0.15, // Default 0.15 transparency as requested!
+      showBackLobes: false, // Default false: no confusing sphere or cluster around central nucleus!
+      showUnhybridP: true,
+      quickBuildElem: 'H',
+      quickBuildOrbital: 's',
+      nextId: 1
+    };
+
+    /* =========================================================================
+       Three.js Scene Setup
+       ========================================================================= */
+    const container = document.getElementById('viewport-container');
+    const scene = new THREE.Scene();
+    scene.fog = new THREE.FogExp2(0x0b0f19, 0.025);
+
+    const camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 1000);
+    camera.position.set(0, 3, 10);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setSize(container.clientWidth, container.clientHeight);
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    container.appendChild(renderer.domElement);
+
+    // Orbit Controls
+    const controls = new THREE.OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.05;
+    controls.maxDistance = 40;
+    controls.minDistance = 2;
+
+    // Environment Lighting
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
+    scene.add(ambientLight);
+
+    const dirLight1 = new THREE.DirectionalLight(0xffffff, 0.9);
+    dirLight1.position.set(10, 15, 10);
+    scene.add(dirLight1);
+
+    const dirLight2 = new THREE.DirectionalLight(0x38bdf8, 0.4);
+    dirLight2.position.set(-10, -5, -10);
+    scene.add(dirLight2);
+
+    // Subtle Ground Grid & Coordinate Axes
+    const gridHelper = new THREE.GridHelper(24, 24, 0x1e293b, 0x0f172a);
+    gridHelper.position.y = -4;
+    scene.add(gridHelper);
+
+    const axesGroup = new THREE.Group();
+    const axisLength = 2.5;
+    const makeAxisLine = (color, endPoint) => {
+      const mat = new THREE.LineBasicMaterial({ color, opacity: 0.4, transparent: true });
+      const geom = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0,0,0), endPoint]);
+      return new THREE.Line(geom, mat);
+    };
+    axesGroup.add(makeAxisLine(0xef4444, new THREE.Vector3(axisLength, 0, 0))); // X
+    axesGroup.add(makeAxisLine(0x10b981, new THREE.Vector3(0, axisLength, 0))); // Y
+    axesGroup.add(makeAxisLine(0x3b82f6, new THREE.Vector3(0, 0, axisLength))); // Z
+    scene.add(axesGroup);
+
+    // Raycaster for Atom Clicking & Lobe Quick-Build
+    const raycaster = new THREE.Raycaster();
+    const mouse = new THREE.Vector2();
+
+    // Quick Build 3D Ghost Preview and Attachment Guides
+    const previewGeom = new THREE.SphereGeometry(0.28, 24, 24);
+    const previewMat = new THREE.MeshBasicMaterial({
+      color: 0xffffff,
+      wireframe: true,
+      transparent: true,
+      opacity: 0.85
+    });
+    const quickBuildPreview = new THREE.Mesh(previewGeom, previewMat);
+    quickBuildPreview.visible = false;
+    scene.add(quickBuildPreview);
+
+    const previewLineGeom = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0,0,0), new THREE.Vector3(0,0,0)]);
+    const previewLineMat = new THREE.LineDashedMaterial({
+      color: 0x38bdf8,
+      dashSize: 0.12,
+      gapSize: 0.08,
+      transparent: true,
+      opacity: 0.85
+    });
+    const previewLine = new THREE.Line(previewLineGeom, previewLineMat);
+    previewLine.visible = false;
+    scene.add(previewLine);
+
+    // Group holding all active π-bond and delocalized orbital bridges
+    const bridgeGroup = new THREE.Group();
+    bridgeGroup.name = "orbital-bridge-group";
+    scene.add(bridgeGroup);
+
+    /* =========================================================================
+       Procedural Orbital Geometry Generators
+       ========================================================================= */
+
+    /**
+    /**
+     * Creates a textbook-accurate chemistry orbital lobe:
+     * - Narrow / pinched neck attached at the central nucleus (y = 0, r = 0).
+     * - Smoothly widens outwards along the stem.
+     * - Forms a broad, large bulbous head.
+     * - Ends with a perfectly smooth, rounded hemispherical cap at the outer tip (zero sharp point!).
+     */
+    function createTeardropLobeGeometry(length = 1.65, maxRadius = 0.62, stemPower = 1.45, segments = 36) {
+      const points = [];
+      const steps = 40;
+      const rCap = maxRadius; // Radius of spherical dome cap
+      const stemLen = Math.max(0.15, length - rCap);
+
+      for (let i = 0; i <= steps; i++) {
+        const frac = i / steps; // 0 to 1
+        const y = frac * length;
+        let r = 0;
+
+        if (y <= stemLen) {
+          // Tapered stem: pinched neck at nucleus (y = 0), smoothly widening outwards
+          const u = y / stemLen; // 0 to 1
+          r = maxRadius * Math.pow(u, stemPower);
+        } else {
+          // Hemispherical dome cap: perfectly rounded outer head (no cone tip!)
+          const s = Math.min(1, (y - stemLen) / rCap); // 0 to 1
+          r = maxRadius * Math.sqrt(Math.max(0, 1 - s * s));
+        }
+
+        points.push(new THREE.Vector2(Math.max(0, r), y));
+      }
+
+      return new THREE.LatheGeometry(points, segments);
+    }
+
+    // Shared geometry caches - all using the correct teardrop profile!
+    // (Pointy neck at nucleus, broad smooth rounded head at outer tip)
+    const cachedHybridLobeGeom = createTeardropLobeGeometry(1.65, 0.62, 1.45);
+    const cachedPLobeGeom = createTeardropLobeGeometry(1.55, 0.58, 1.35);
+    const cachedDLobeGeom = createTeardropLobeGeometry(1.50, 0.54, 1.40);
+    const cachedMinorLobeGeom = createTeardropLobeGeometry(0.42, 0.20, 1.35);
+    const cachedUnhybridPGeom = createTeardropLobeGeometry(1.50, 0.50, 1.35);
+
+    /**
+     * Material generator for orbitals with glass/translucent cloud aesthetic
+     */
+    function createOrbitalMaterial(color, opacity, wireframe = false) {
+      return new THREE.MeshPhysicalMaterial({
+        color: color,
+        transparent: true,
+        opacity: opacity,
+        roughness: 0.15,
+        metalness: 0.05,
+        transmission: 0.2,
+        ior: 1.3,
+        side: THREE.DoubleSide,
+        depthWrite: false,
+        wireframe: wireframe
+      });
+    }
+
+    /**
+     * Builds a single directional lobe mesh oriented along direction vector `dir`
+     * lobeKind: 'hybrid' | 'p' | 'd' | 'minor' | 'unhybrid'
+     */
+    function buildOrientedLobe(dir, isPositivePhase = true, lobeKind = 'hybrid', customScale = 1.0) {
+      let geom = cachedHybridLobeGeom;
+      if (lobeKind === 'p') geom = cachedPLobeGeom;
+      else if (lobeKind === 'd') geom = cachedDLobeGeom;
+      else if (lobeKind === 'minor') geom = cachedMinorLobeGeom;
+      else if (lobeKind === 'unhybrid') geom = cachedUnhybridPGeom;
+
+      const color = isPositivePhase ? COLOR_POS_PHASE : COLOR_NEG_PHASE;
+      const mat = createOrbitalMaterial(color, state.orbitalOpacity);
+      const mesh = new THREE.Mesh(geom, mat);
+
+      // Orient from default +Y axis to `dir`
+      const normalizedDir = dir.clone().normalize();
+      const quaternion = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), normalizedDir);
+      mesh.quaternion.copy(quaternion);
+
+      if (customScale !== 1.0) {
+        mesh.scale.setScalar(customScale);
+      }
+
+      // Quick Build attachment metadata
+      mesh.userData.isLobe = true;
+      mesh.userData.localDir = normalizedDir.clone();
+      mesh.userData.lobeKind = lobeKind;
+      mesh.userData.phase = isPositivePhase ? 1 : -1;
+
+      return mesh;
+    }
+
+    /**
+     * Creates a textbook-accurate planar nodal surface:
+     * - Translucent square sheet where psi = 0
+     * - Subtle perimeter wireframe border (Lines) matching chemistry textbook figures
+     */
+    function createPlanarNodalSurface(normalDir, size = 3.6) {
+      const planeGroup = new THREE.Group();
+      planeGroup.name = "planar-nodal-surface";
+
+      const planeGeom = new THREE.PlaneGeometry(size, size);
+      const planeMat = new THREE.MeshBasicMaterial({
+        color: 0xe2e8f0,
+        transparent: true,
+        opacity: 0.22,
+        side: THREE.DoubleSide,
+        depthWrite: false
+      });
+      const planeMesh = new THREE.Mesh(planeGeom, planeMat);
+      planeGroup.add(planeMesh);
+
+      // Clean perimeter border edge lines
+      const edgesGeom = new THREE.EdgesGeometry(planeGeom);
+      const edgesMat = new THREE.LineBasicMaterial({
+        color: 0xffffff,
+        transparent: true,
+        opacity: 0.65
+      });
+      const edgesMesh = new THREE.LineSegments(edgesGeom, edgesMat);
+      planeGroup.add(edgesMesh);
+
+      // Orient normal: PlaneGeometry default normal is (0, 0, 1)
+      const norm = normalDir.clone().normalize();
+      const quat = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 0, 1), norm);
+      planeGroup.quaternion.copy(quat);
+
+      return planeGroup;
+    }
+
+    /**
+     * Creates the two textbook-accurate conical nodal surfaces for dz2:
+     * - Condition: 3*cos^2(theta) - 1 = 0 => tan(theta) = sqrt(2) => theta ~ 54.74 degrees.
+     * - Two cones meeting at origin (nucleus): one opens along +Z, one along -Z.
+     * - Crisp circular rim rings at distance `height` matching textbook diagrams.
+     */
+    function createDz2NodalCones(height = 1.6) {
+      const coneGroup = new THREE.Group();
+      coneGroup.name = "dz2-conical-nodal-surfaces";
+
+      const radius = height * Math.SQRT2;
+      const radialSegs = 48;
+
+      // Apex at (0,0,0), base at (0,-height,0)
+      const coneGeom = new THREE.ConeGeometry(radius, height, radialSegs, 1, true);
+      coneGeom.translate(0, -height / 2, 0);
+
+      const coneMat = new THREE.MeshBasicMaterial({
+        color: 0xe2e8f0,
+        transparent: true,
+        opacity: 0.22,
+        side: THREE.DoubleSide,
+        depthWrite: false
+      });
+
+      // Rim circle wire geometry around base at y = -height
+      const rimGeom = new THREE.BufferGeometry();
+      const rimPts = [];
+      for (let i = 0; i <= radialSegs; i++) {
+        const th = (i / radialSegs) * Math.PI * 2;
+        rimPts.push(new THREE.Vector3(Math.cos(th) * radius, -height, Math.sin(th) * radius));
+      }
+      rimGeom.setFromPoints(rimPts);
+      const rimMat = new THREE.LineBasicMaterial({
+        color: 0xffffff,
+        transparent: true,
+        opacity: 0.65
+      });
+
+      // Top Cone: apex at origin, opens along +Z
+      const topCone = new THREE.Group();
+      topCone.add(new THREE.Mesh(coneGeom, coneMat));
+      topCone.add(new THREE.Line(rimGeom, rimMat));
+      topCone.quaternion.setFromUnitVectors(new THREE.Vector3(0, -1, 0), new THREE.Vector3(0, 0, 1));
+      coneGroup.add(topCone);
+
+      // Bottom Cone: apex at origin, opens along -Z
+      const bottomCone = new THREE.Group();
+      bottomCone.add(new THREE.Mesh(coneGeom, coneMat));
+      bottomCone.add(new THREE.Line(rimGeom, rimMat));
+      bottomCone.quaternion.setFromUnitVectors(new THREE.Vector3(0, -1, 0), new THREE.Vector3(0, 0, -1));
+      coneGroup.add(bottomCone);
+
+      return coneGroup;
+    }
+
+    const createNodalPlane = createPlanarNodalSurface;
+
+    /**
+     * Builds the geometric arrangement envelope (wireframe dashed edges + soft translucent faces + vertex dots)
+     * for all 5 hybridization types based on the VSEPR Electron-Pair Geometry table:
+     * - sp: Linear (2 regions, 180°)
+     * - sp2: Trigonal Planar (3 regions, 120°)
+     * - sp3: Tetrahedral (4 regions, 109.5°)
+     * - sp3d: Trigonal Bipyramidal (5 regions, 90° & 120°)
+     * - sp3d2: Octahedral (6 regions, 90°)
+     */
+    function createArrangementOutline(orbitalType) {
+      const outlineGroup = new THREE.Group();
+      outlineGroup.name = "arrangement-outline-group";
+
+      const lobeLen = 1.65;
+      const edgeColor = 0x84cc16; // Chartreuse / light green dashed lines from textbook diagram
+      const faceColor = 0xfbbf24; // Amber / golden warm translucent face fill
+      const faceOpacity = 0.16;
+
+      const dashedMat = new THREE.LineDashedMaterial({
+        color: edgeColor,
+        dashSize: 0.14,
+        gapSize: 0.08,
+        transparent: true,
+        opacity: 0.95
+      });
+
+      const faceMat = new THREE.MeshBasicMaterial({
+        color: faceColor,
+        transparent: true,
+        opacity: faceOpacity,
+        side: THREE.DoubleSide,
+        depthWrite: false
+      });
+
+      function addDashedEdges(edges, vertices) {
+        const pts = [];
+        edges.forEach(([i, j]) => {
+          pts.push(vertices[i], vertices[j]);
+        });
+        const geom = new THREE.BufferGeometry().setFromPoints(pts);
+        const lineSegs = new THREE.LineSegments(geom, dashedMat);
+        lineSegs.computeLineDistances();
+        outlineGroup.add(lineSegs);
+      }
+
+      function addFaceMesh(faceIndices, vertices) {
+        const positions = [];
+        faceIndices.forEach(([i, j, k]) => {
+          positions.push(
+            vertices[i].x, vertices[i].y, vertices[i].z,
+            vertices[j].x, vertices[j].y, vertices[j].z,
+            vertices[k].x, vertices[k].y, vertices[k].z
+          );
+        });
+        const geom = new THREE.BufferGeometry();
+        geom.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+        geom.computeVertexNormals();
+        outlineGroup.add(new THREE.Mesh(geom, faceMat));
+      }
+
+      function addVertexDots(vertices) {
+        const dotGeom = new THREE.SphereGeometry(0.045, 12, 12);
+        const dotMat = new THREE.MeshBasicMaterial({ color: edgeColor });
+        vertices.forEach(v => {
+          const dot = new THREE.Mesh(dotGeom, dotMat);
+          dot.position.copy(v);
+          outlineGroup.add(dot);
+        });
+      }
+
+      if (orbitalType === 'sp') {
+        // 2 vertices along ±X at 180°
+        const v0 = new THREE.Vector3( lobeLen, 0, 0);
+        const v1 = new THREE.Vector3(-lobeLen, 0, 0);
+        const vertices = [v0, v1];
+        addDashedEdges([[0, 1]], vertices);
+        addVertexDots(vertices);
+      }
+      else if (orbitalType === 'sp2') {
+        // 3 vertices at 120° in XY plane
+        const v0 = new THREE.Vector3(Math.cos(0) * lobeLen, Math.sin(0) * lobeLen, 0);
+        const v1 = new THREE.Vector3(Math.cos(2 * Math.PI / 3) * lobeLen, Math.sin(2 * Math.PI / 3) * lobeLen, 0);
+        const v2 = new THREE.Vector3(Math.cos(4 * Math.PI / 3) * lobeLen, Math.sin(4 * Math.PI / 3) * lobeLen, 0);
+        const vertices = [v0, v1, v2];
+
+        addDashedEdges([[0, 1], [1, 2], [2, 0]], vertices);
+        addFaceMesh([[0, 1, 2]], vertices);
+        addVertexDots(vertices);
+      }
+      else if (orbitalType === 'sp3') {
+        // 4 vertices in regular tetrahedral geometry at 109.5°
+        const tetraDirs = [
+          new THREE.Vector3( 1,  1,  1).normalize(),
+          new THREE.Vector3(-1, -1,  1).normalize(),
+          new THREE.Vector3(-1,  1, -1).normalize(),
+          new THREE.Vector3( 1, -1, -1).normalize()
+        ];
+        const vertices = tetraDirs.map(d => d.clone().multiplyScalar(lobeLen));
+        const edges = [
+          [0, 1], [0, 2], [0, 3],
+          [1, 2], [2, 3], [3, 1]
+        ];
+        const faces = [
+          [0, 1, 2], [0, 2, 3], [0, 3, 1], [1, 3, 2]
+        ];
+
+        addDashedEdges(edges, vertices);
+        addFaceMesh(faces, vertices);
+        addVertexDots(vertices);
+      }
+      else if (orbitalType === 'sp3d') {
+        // 5 vertices: 3 equatorial at 120° in XY, 2 axial along ±Z
+        const vertices = [
+          new THREE.Vector3(Math.cos(0) * lobeLen, Math.sin(0) * lobeLen, 0),
+          new THREE.Vector3(Math.cos(2 * Math.PI / 3) * lobeLen, Math.sin(2 * Math.PI / 3) * lobeLen, 0),
+          new THREE.Vector3(Math.cos(4 * Math.PI / 3) * lobeLen, Math.sin(4 * Math.PI / 3) * lobeLen, 0),
+          new THREE.Vector3(0, 0,  lobeLen), // 3: Top (+Z)
+          new THREE.Vector3(0, 0, -lobeLen)  // 4: Bottom (-Z)
+        ];
+        const edges = [
+          // Equatorial triangle
+          [0, 1], [1, 2], [2, 0],
+          // Top pyramid
+          [3, 0], [3, 1], [3, 2],
+          // Bottom pyramid
+          [4, 0], [4, 1], [4, 2]
+        ];
+        const faces = [
+          // Top 3 faces
+          [3, 0, 1], [3, 1, 2], [3, 2, 0],
+          // Bottom 3 faces
+          [4, 1, 0], [4, 2, 1], [4, 0, 2]
+        ];
+
+        addDashedEdges(edges, vertices);
+        addFaceMesh(faces, vertices);
+        addVertexDots(vertices);
+      }
+      else if (orbitalType === 'sp3d2') {
+        // 6 vertices along ±X, ±Y, ±Z
+        const vertices = [
+          new THREE.Vector3( lobeLen, 0, 0), // 0: +X
+          new THREE.Vector3(-lobeLen, 0, 0), // 1: -X
+          new THREE.Vector3(0,  lobeLen, 0), // 2: +Y
+          new THREE.Vector3(0, -lobeLen, 0), // 3: -Y
+          new THREE.Vector3(0, 0,  lobeLen), // 4: +Z (top)
+          new THREE.Vector3(0, 0, -lobeLen)  // 5: -Z (bottom)
+        ];
+        const edges = [
+          // Equatorial square
+          [0, 2], [2, 1], [1, 3], [3, 0],
+          // Top edges from +Z (4)
+          [4, 0], [4, 2], [4, 1], [4, 3],
+          // Bottom edges from -Z (5)
+          [5, 0], [5, 2], [5, 1], [5, 3]
+        ];
+        const faces = [
+          // Top 4 faces
+          [4, 0, 2], [4, 2, 1], [4, 1, 3], [4, 3, 0],
+          // Bottom 4 faces
+          [5, 2, 0], [5, 1, 2], [5, 3, 1], [5, 0, 3]
+        ];
+
+        addDashedEdges(edges, vertices);
+        addFaceMesh(faces, vertices);
+        addVertexDots(vertices);
+      }
+
+      return outlineGroup;
+    }
+
+    /**
+     * Builds the complete 3D orbital group for a specific orbital type
+     * showArrangement: If true, generates the geometric arrangement envelope (wireframe + translucent facets)
+     * showNodalPlanes: If true, generates the angular nodal surfaces (planes or cones where psi = 0)
+     */
+    function generateOrbitalObject(orbitalType, showArrangement = false, showNodalPlanes = false) {
+      const group = new THREE.Group();
+      group.name = "orbital-mesh-group";
+
+      if (orbitalType === 'none') {
+        return group;
+      }
+
+      // --- s orbital (smaller shape by default for realistic bond overlap) ---
+      if (orbitalType === 's') {
+        const radius = 0.68; // Calibrated so s-orbital partially overlaps in bonds!
+        const geom = new THREE.SphereGeometry(radius, 36, 36);
+        const mat = createOrbitalMaterial(COLOR_POS_PHASE, state.orbitalOpacity);
+        const sphere = new THREE.Mesh(geom, mat);
+        group.add(sphere);
+      }
+
+      // --- p orbitals (px, py, pz, p_all) ---
+      else if (orbitalType === 'px' || orbitalType === 'py' || orbitalType === 'pz' || orbitalType === 'p_all') {
+        const axes = [];
+        if (orbitalType === 'px' || orbitalType === 'p_all') axes.push({ dir: new THREE.Vector3(1, 0, 0), normal: new THREE.Vector3(1, 0, 0) });
+        if (orbitalType === 'py' || orbitalType === 'p_all') axes.push({ dir: new THREE.Vector3(0, 1, 0), normal: new THREE.Vector3(0, 1, 0) });
+        if (orbitalType === 'pz' || orbitalType === 'p_all') axes.push({ dir: new THREE.Vector3(0, 0, 1), normal: new THREE.Vector3(0, 0, 1) });
+
+        axes.forEach(axis => {
+          // Positive lobe (+)
+          group.add(buildOrientedLobe(axis.dir, true, 'p'));
+          // Negative lobe (-)
+          group.add(buildOrientedLobe(axis.dir.clone().negate(), false, 'p'));
+
+          // Planar Nodal Surface where psi = 0
+          if (showNodalPlanes) {
+            group.add(createPlanarNodalSurface(axis.normal));
+          }
+        });
+      }
+
+      // --- sp Hybridization (Linear 180°) ---
+      else if (orbitalType === 'sp') {
+        const dirs = [new THREE.Vector3(1, 0, 0), new THREE.Vector3(-1, 0, 0)];
+        dirs.forEach((d) => {
+          // Major hybrid lobe (pointy neck at atom, large bulbous head at outer tip)
+          group.add(buildOrientedLobe(d, true, 'hybrid'));
+          // Small back lobe (opposite sign)
+          if (state.showBackLobes) {
+            group.add(buildOrientedLobe(d.clone().negate(), false, 'minor'));
+          }
+        });
+
+        // 2 Unhybridized perpendicular p-orbitals (py and pz)
+        if (state.showUnhybridP) {
+          [new THREE.Vector3(0, 1, 0), new THREE.Vector3(0, 0, 1)].forEach(pDir => {
+            const pGroup = new THREE.Group();
+            const pMatPos = createOrbitalMaterial(COLOR_POS_PHASE, Math.max(0.20, state.orbitalOpacity * 1.5));
+            const pMatNeg = createOrbitalMaterial(COLOR_NEG_PHASE, Math.max(0.20, state.orbitalOpacity * 1.5));
+            const m1 = new THREE.Mesh(cachedUnhybridPGeom, pMatPos);
+            const m2 = new THREE.Mesh(cachedUnhybridPGeom, pMatNeg);
+            m1.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0), pDir);
+            m2.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0), pDir.clone().negate());
+            m1.userData.isLobe = true;
+            m1.userData.localDir = pDir.clone();
+            m1.userData.phase = 1; // + Phase (Red)
+            m1.userData.lobeKind = 'unhybrid';
+            m2.userData.isLobe = true;
+            m2.userData.localDir = pDir.clone().negate();
+            m2.userData.phase = -1; // - Phase (Blue)
+            m2.userData.lobeKind = 'unhybrid';
+            pGroup.add(m1);
+            pGroup.add(m2);
+            group.add(pGroup);
+          });
+        }
+      }
+
+      // --- sp² Hybridization (Trigonal Planar 120°) ---
+      else if (orbitalType === 'sp2') {
+        const angles = [0, (2 * Math.PI) / 3, (4 * Math.PI) / 3];
+        angles.forEach(ang => {
+          const dir = new THREE.Vector3(Math.cos(ang), Math.sin(ang), 0);
+          group.add(buildOrientedLobe(dir, true, 'hybrid'));
+          if (state.showBackLobes) {
+            group.add(buildOrientedLobe(dir.clone().negate(), false, 'minor'));
+          }
+        });
+
+        // 1 Unhybridized pz orbital perpendicular to plane
+        if (state.showUnhybridP) {
+          const pDir = new THREE.Vector3(0, 0, 1);
+          const pMatPos = createOrbitalMaterial(COLOR_POS_PHASE, Math.max(0.22, state.orbitalOpacity * 1.5));
+          const pMatNeg = createOrbitalMaterial(COLOR_NEG_PHASE, Math.max(0.22, state.orbitalOpacity * 1.5));
+          const m1 = new THREE.Mesh(cachedUnhybridPGeom, pMatPos);
+          const m2 = new THREE.Mesh(cachedUnhybridPGeom, pMatNeg);
+          m1.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0), pDir);
+          m2.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0), pDir.clone().negate());
+          m1.userData.isLobe = true;
+          m1.userData.localDir = pDir.clone();
+          m1.userData.phase = 1; // + Phase (Red)
+          m1.userData.lobeKind = 'unhybrid';
+          m2.userData.isLobe = true;
+          m2.userData.localDir = pDir.clone().negate();
+          m2.userData.phase = -1; // - Phase (Blue)
+          m2.userData.lobeKind = 'unhybrid';
+          group.add(m1);
+          group.add(m2);
+        }
+      }
+
+      // --- sp³ Hybridization (Tetrahedral 109.5°) ---
+      else if (orbitalType === 'sp3') {
+        const tetraDirs = [
+          new THREE.Vector3( 1,  1,  1).normalize(),
+          new THREE.Vector3(-1, -1,  1).normalize(),
+          new THREE.Vector3(-1,  1, -1).normalize(),
+          new THREE.Vector3( 1, -1, -1).normalize()
+        ];
+
+        tetraDirs.forEach(dir => {
+          // Major hybrid lobe (pointy neck at atom, large bulbous head at outer tip)
+          group.add(buildOrientedLobe(dir, true, 'hybrid'));
+          // Small back lobe (opposite sign) - only if enabled
+          if (state.showBackLobes) {
+            group.add(buildOrientedLobe(dir.clone().negate(), false, 'minor'));
+          }
+        });
+      }
+
+      // --- sp³d Hybridization (Trigonal Bipyramidal) ---
+      else if (orbitalType === 'sp3d') {
+        // 3 Equatorial at 120° in XY plane
+        [0, (2*Math.PI)/3, (4*Math.PI)/3].forEach(ang => {
+          const dir = new THREE.Vector3(Math.cos(ang), Math.sin(ang), 0);
+          group.add(buildOrientedLobe(dir, true, 'hybrid'));
+        });
+        // 2 Axial along ±Z
+        group.add(buildOrientedLobe(new THREE.Vector3(0, 0, 1), true, 'hybrid'));
+        group.add(buildOrientedLobe(new THREE.Vector3(0, 0, -1), true, 'hybrid'));
+      }
+
+      // --- sp³d² Hybridization (Octahedral) ---
+      else if (orbitalType === 'sp3d2') {
+        [
+          new THREE.Vector3( 1, 0, 0), new THREE.Vector3(-1, 0, 0),
+          new THREE.Vector3( 0, 1, 0), new THREE.Vector3( 0,-1, 0),
+          new THREE.Vector3( 0, 0, 1), new THREE.Vector3( 0, 0,-1)
+        ].forEach(dir => {
+          group.add(buildOrientedLobe(dir, true, 'hybrid'));
+        });
+      }
+
+      // --- dxy Orbital (Cloverleaf in XY plane) ---
+      else if (orbitalType === 'dxy') {
+        const invSqrt2 = 1 / Math.SQRT2;
+        // 4 lobes at 45° to axes in XY plane
+        group.add(buildOrientedLobe(new THREE.Vector3( invSqrt2,  invSqrt2, 0), true, 'd'));
+        group.add(buildOrientedLobe(new THREE.Vector3(-invSqrt2, -invSqrt2, 0), true, 'd'));
+        group.add(buildOrientedLobe(new THREE.Vector3(-invSqrt2,  invSqrt2, 0), false, 'd'));
+        group.add(buildOrientedLobe(new THREE.Vector3( invSqrt2, -invSqrt2, 0), false, 'd'));
+
+        // Nodal Planes: XZ plane (y=0, normal along Y) and YZ plane (x=0, normal along X)
+        if (showNodalPlanes) {
+          group.add(createPlanarNodalSurface(new THREE.Vector3(0, 1, 0)));
+          group.add(createPlanarNodalSurface(new THREE.Vector3(1, 0, 0)));
+        }
+      }
+
+      // --- dxz Orbital (Cloverleaf in XZ plane) ---
+      else if (orbitalType === 'dxz') {
+        const invSqrt2 = 1 / Math.SQRT2;
+        // 4 lobes at 45° to axes in XZ plane
+        group.add(buildOrientedLobe(new THREE.Vector3( invSqrt2, 0,  invSqrt2), true, 'd'));
+        group.add(buildOrientedLobe(new THREE.Vector3(-invSqrt2, 0, -invSqrt2), true, 'd'));
+        group.add(buildOrientedLobe(new THREE.Vector3(-invSqrt2, 0,  invSqrt2), false, 'd'));
+        group.add(buildOrientedLobe(new THREE.Vector3( invSqrt2, 0, -invSqrt2), false, 'd'));
+
+        // Nodal Planes: XY plane (z=0, normal along Z) and YZ plane (x=0, normal along X)
+        if (showNodalPlanes) {
+          group.add(createPlanarNodalSurface(new THREE.Vector3(0, 0, 1)));
+          group.add(createPlanarNodalSurface(new THREE.Vector3(1, 0, 0)));
+        }
+      }
+
+      // --- dyz Orbital (Cloverleaf in YZ plane) ---
+      else if (orbitalType === 'dyz') {
+        const invSqrt2 = 1 / Math.SQRT2;
+        // 4 lobes at 45° to axes in YZ plane
+        group.add(buildOrientedLobe(new THREE.Vector3(0,  invSqrt2,  invSqrt2), true, 'd'));
+        group.add(buildOrientedLobe(new THREE.Vector3(0, -invSqrt2, -invSqrt2), true, 'd'));
+        group.add(buildOrientedLobe(new THREE.Vector3(0, -invSqrt2,  invSqrt2), false, 'd'));
+        group.add(buildOrientedLobe(new THREE.Vector3(0,  invSqrt2, -invSqrt2), false, 'd'));
+
+        // Nodal Planes: XY plane (z=0, normal along Z) and XZ plane (y=0, normal along Y)
+        if (showNodalPlanes) {
+          group.add(createPlanarNodalSurface(new THREE.Vector3(0, 0, 1)));
+          group.add(createPlanarNodalSurface(new THREE.Vector3(0, 1, 0)));
+        }
+      }
+
+      // --- dx2y2 Orbital (Cloverleaf along X and Y axes) ---
+      else if (orbitalType === 'dx2y2') {
+        // Lobes along X-axis are positive (+), lobes along Y-axis are negative (-)
+        group.add(buildOrientedLobe(new THREE.Vector3( 1,  0, 0), true, 'd'));
+        group.add(buildOrientedLobe(new THREE.Vector3(-1,  0, 0), true, 'd'));
+        group.add(buildOrientedLobe(new THREE.Vector3( 0,  1, 0), false, 'd'));
+        group.add(buildOrientedLobe(new THREE.Vector3( 0, -1, 0), false, 'd'));
+
+        // Nodal Planes: 2 planes at 45° bisecting the coordinate axes (x = y and x = -y)
+        if (showNodalPlanes) {
+          const invSqrt2 = 1 / Math.SQRT2;
+          group.add(createPlanarNodalSurface(new THREE.Vector3(invSqrt2,  invSqrt2, 0)));
+          group.add(createPlanarNodalSurface(new THREE.Vector3(invSqrt2, -invSqrt2, 0)));
+        }
+      }
+
+      // --- dz2 Orbital (Dumbbell + Donut Torus) ---
+      else if (orbitalType === 'dz2') {
+        // Two main lobes along Z axis (Positive phase)
+        group.add(buildOrientedLobe(new THREE.Vector3(0, 0, 1), true, 'p'));
+        group.add(buildOrientedLobe(new THREE.Vector3(0, 0, -1), true, 'p'));
+
+        // Equatorial torus donut (Negative phase, scaled)
+        const torusGeom = new THREE.TorusGeometry(0.65, 0.18, 24, 40);
+        const torusMat = createOrbitalMaterial(COLOR_NEG_PHASE, state.orbitalOpacity);
+        const torusMesh = new THREE.Mesh(torusGeom, torusMat);
+        group.add(torusMesh);
+
+        // 2 Conical Nodal Surfaces at theta = 54.74° (meeting at nucleus)
+        if (showNodalPlanes) {
+          group.add(createDz2NodalCones(1.55));
+        }
+      }
+
+      // Add Geometric Arrangement Outline if enabled for this specific atom
+      if (showArrangement) {
+        const outlineMesh = createArrangementOutline(orbitalType);
+        if (outlineMesh && outlineMesh.children.length > 0) {
+          group.add(outlineMesh);
+        }
+      }
+
+      // Apply overall orbital scaling
+      group.scale.setScalar(state.orbitalScale);
+      return group;
+    }
+
+    /**
+     * Parses the chemical element from atom name (e.g. C1 -> C, H_ax1 -> H, Cl_eq2 -> Cl, 3d_xy -> D)
+     */
+    function parseElementFromName(name) {
+      if (!name) return 'C';
+      const trimmed = name.trim();
+      const stripped = trimmed.replace(/^\d+/, ''); // strip leading digits (e.g. '3d' -> 'd')
+
+      // 1. Two-letter chemical symbols
+      const twoLetter = stripped.match(/^(Cl|Br|Na|Mg|Si|Ca|Fe|Cu|Zn)\b/i)
+                     || stripped.match(/^(Cl|Br|Na|Mg|Si|Ca|Fe|Cu|Zn)[_\d\s]/i)
+                     || stripped.match(/^(Cl|Br|Na|Mg|Si|Ca|Fe|Cu|Zn)/i);
+      if (twoLetter) {
+        return twoLetter[1].charAt(0).toUpperCase() + twoLetter[1].slice(1).toLowerCase();
+      }
+
+      // 2. Single-letter chemical symbols (C, H, O, N, P, S, F, etc.)
+      const singleMatch = stripped.match(/^([CHONPSFBIKD])\b/i)
+                       || stripped.match(/^([CHONPSFBIKD])[_\d\s]/i)
+                       || stripped.match(/^([CHONPSFBIKD])/i);
+      if (singleMatch) {
+        return singleMatch[1].toUpperCase();
+      }
+
+      // 3. Fallback: match leading alphabet string
+      const alpha = stripped.match(/^([a-zA-Z]+)/);
+      if (alpha) return alpha[1].toUpperCase();
+
+      return 'ATOM';
+    }
+
+    let toastTimeout = null;
+    function showToast(message, icon = '✨') {
+      const toast = document.getElementById('toast-notification');
+      if (!toast) return;
+      toast.innerHTML = `<span style="font-size: 14px;">${icon}</span> <span>${message}</span>`;
+      toast.classList.add('show');
+      if (toastTimeout) clearTimeout(toastTimeout);
+      toastTimeout = setTimeout(() => {
+        toast.classList.remove('show');
+      }, 2400);
+    }
+
+    /* =========================================================================
+       Atom Entity Class
+       ========================================================================= */
+    class ChemAtom {
+      constructor(options = {}) {
+        this.id = options.id || ('atom_' + state.nextId++);
+        this.name = options.name || ('C' + (state.atoms.length + 1));
+        this.element = (options.element || parseElementFromName(this.name)).toUpperCase();
+        this.color = options.color || '#334155'; // Default CPK carbon
+        this.radius = options.radius || 0.45;
+        this.orbitalType = options.orbitalType || 'none'; // Default no orbital at first
+        this.showArrangement = options.showArrangement || false; // Per-atom toggle
+        this.showNodalPlanes = options.showNodalPlanes || false; // Per-atom toggle
+        this.position = options.position || new THREE.Vector3(0, 0, 0);
+        this.rotation = options.rotation ? options.rotation.clone() : new THREE.Euler(0, 0, 0, 'XYZ');
+
+        // Three.js Container Group
+        this.group = new THREE.Group();
+        this.group.position.copy(this.position);
+        this.group.rotation.copy(this.rotation);
+        this.group.userData.atomInstance = this;
+
+        // 1. Nucleus Mesh
+        this.nucleusGeom = new THREE.SphereGeometry(this.radius, 32, 32);
+        this.nucleusMat = new THREE.MeshStandardMaterial({
+          color: new THREE.Color(this.color),
+          roughness: 0.35,
+          metalness: 0.15
+        });
+        this.nucleusMesh = new THREE.Mesh(this.nucleusGeom, this.nucleusMat);
+        this.nucleusMesh.castShadow = true;
+        this.nucleusMesh.receiveShadow = true;
+        this.group.add(this.nucleusMesh);
+
+        // 2. Selection Highlight Ring
+        const ringGeom = new THREE.RingGeometry(this.radius * 1.3, this.radius * 1.45, 32);
+        const ringMat = new THREE.MeshBasicMaterial({
+          color: COLOR_SELECTION_RING,
+          side: THREE.DoubleSide,
+          transparent: true,
+          opacity: 0.9
+        });
+        this.selectionRing = new THREE.Mesh(ringGeom, ringMat);
+        this.selectionRing.visible = false;
+        this.group.add(this.selectionRing);
+
+        // 3. Orbital Cloud Mesh Group
+        this.orbitalGroup = generateOrbitalObject(this.orbitalType, this.showArrangement, this.showNodalPlanes);
+        this.group.add(this.orbitalGroup);
+
+        scene.add(this.group);
+      }
+
+      updateArrangement(show) {
+        this.showArrangement = !!show;
+        this.rebuildOrbital();
+      }
+
+      updateNodalPlanes(show) {
+        this.showNodalPlanes = !!show;
+        this.rebuildOrbital();
+      }
+
+      updatePosition(x, y, z) {
+        this.position.set(x, y, z);
+        this.group.position.copy(this.position);
+      }
+
+      updateRotation(rx, ry, rz) {
+        this.rotation.set(rx, ry, rz, 'XYZ');
+        this.group.rotation.copy(this.rotation);
+      }
+
+      updateRotationDegrees(dx, dy, dz) {
+        const toRad = Math.PI / 180;
+        this.updateRotation(dx * toRad, dy * toRad, dz * toRad);
+      }
+
+      updateRadius(r) {
+        this.radius = r;
+        this.nucleusMesh.geometry.dispose();
+        this.nucleusMesh.geometry = new THREE.SphereGeometry(r, 32, 32);
+        this.selectionRing.geometry.dispose();
+        this.selectionRing.geometry = new THREE.RingGeometry(r * 1.3, r * 1.45, 32);
+      }
+
+      updateColor(colorHex) {
+        this.color = colorHex;
+        this.nucleusMat.color.set(colorHex);
+      }
+
+      updateOrbital(newType) {
+        this.orbitalType = newType;
+        this.rebuildOrbital();
+      }
+
+      rebuildOrbital() {
+        this.group.remove(this.orbitalGroup);
+        // Clean up previous materials/geometries if needed
+        this.orbitalGroup = generateOrbitalObject(this.orbitalType, this.showArrangement, this.showNodalPlanes);
+        this.group.add(this.orbitalGroup);
+      }
+
+      setSelected(isSelected) {
+        this.selectionRing.visible = isSelected;
+      }
+
+      destroy() {
+        scene.remove(this.group);
+        this.nucleusGeom.dispose();
+        this.nucleusMat.dispose();
+      }
+    }
+
+    /* =========================================================================
+       State Mutations & Selection Management
+       ========================================================================= */
+
+    function addAtom(options = {}) {
+      const atom = new ChemAtom(options);
+      state.atoms.push(atom);
+      selectAtom(atom.id, false);
+      updateUI();
+      return atom;
+    }
+
+    function removeAtom(atomId) {
+      const index = state.atoms.findIndex(a => a.id === atomId);
+      if (index !== -1) {
+        const atom = state.atoms[index];
+        atom.destroy();
+        state.atoms.splice(index, 1);
+        state.selectedIds.delete(atomId);
+        updateUI();
+      }
+    }
+
+    function selectAtom(atomId, addToSelection = false) {
+      if (!addToSelection) {
+        state.selectedIds.clear();
+      }
+      if (atomId) {
+        state.selectedIds.add(atomId);
+      }
+
+      state.atoms.forEach(atom => {
+        atom.setSelected(state.selectedIds.has(atom.id));
+      });
+
+      updateUI();
+    }
+
+    let lastTypeSelectionTime = 0;
+
+    /**
+     * Selects all atoms matching the chemical element/type of targetAtom (e.g. all H, all C, etc.)
+     */
+    function selectAtomsByType(targetAtom, addToSelection = false) {
+      if (!targetAtom) return;
+      const targetElem = (targetAtom.element || parseElementFromName(targetAtom.name)).toUpperCase();
+      if (!targetElem) return;
+
+      const matches = state.atoms.filter(a => {
+        const elem = (a.element || parseElementFromName(a.name)).toUpperCase();
+        return elem === targetElem;
+      });
+
+      if (matches.length === 0) return;
+
+      if (!addToSelection) {
+        state.selectedIds.clear();
+      }
+
+      matches.forEach(a => state.selectedIds.add(a.id));
+      state.atoms.forEach(a => a.setSelected(state.selectedIds.has(a.id)));
+
+      // If in Orbit mode and multiple atoms selected, switch to Multiple Selection mode
+      if (state.mode === 'orbit' && matches.length > 1) {
+        setInteractionMode('box');
+      }
+
+      updateUI();
+      lastTypeSelectionTime = performance.now();
+
+      const elemDisplayMap = {
+        'H': 'Hydrogen (H)',
+        'C': 'Carbon (C)',
+        'O': 'Oxygen (O)',
+        'N': 'Nitrogen (N)',
+        'S': 'Sulfur (S)',
+        'P': 'Phosphorus (P)',
+        'F': 'Fluorine (F)',
+        'Cl': 'Chlorine (Cl)',
+        'D': 'd-Orbital'
+      };
+      const nameStr = elemDisplayMap[targetElem] || `${targetElem}`;
+      showToast(`Selected all ${matches.length} ${nameStr} atoms`, '🎯');
+    }
+
+    function getPrimarySelectedAtom() {
+      if (state.selectedIds.size === 0) return null;
+      const firstId = Array.from(state.selectedIds)[state.selectedIds.size - 1];
+      return state.atoms.find(a => a.id === firstId) || null;
+    }
+
+    /* =========================================================================
+       UI Synchronization & Event Binding
+       ========================================================================= */
+    const atomCountEl = document.getElementById('atom-count');
+    const atomBadgesListEl = document.getElementById('atom-badges-list');
+    const selectedAtomLabelEl = document.getElementById('selected-atom-label');
+    const hudSelectedTextEl = document.getElementById('hud-selected-text');
+    const atomActionsGroupEl = document.getElementById('atom-actions-group');
+    const atomColorInput = document.getElementById('atom-color-input');
+    const atomNameInput = document.getElementById('atom-name-input');
+    const posXSlider = document.getElementById('pos-x-slider');
+    const posYSlider = document.getElementById('pos-y-slider');
+    const posZSlider = document.getElementById('pos-z-slider');
+    const posXVal = document.getElementById('pos-x-val');
+    const posYVal = document.getElementById('pos-y-val');
+    const posZVal = document.getElementById('pos-z-val');
+    const rotXSlider = document.getElementById('rot-x-slider');
+    const rotYSlider = document.getElementById('rot-y-slider');
+    const rotZSlider = document.getElementById('rot-z-slider');
+    const rotXVal = document.getElementById('rot-x-val');
+    const rotYVal = document.getElementById('rot-y-val');
+    const rotZVal = document.getElementById('rot-z-val');
+    const atomRadiusSlider = document.getElementById('atom-radius-slider');
+    const atomRadiusVal = document.getElementById('atom-radius-val');
+    const orbitalDescBox = document.getElementById('orbital-desc-box');
+    const atomArrangementRow = document.getElementById('atom-arrangement-row');
+    const atomArrangementCheck = document.getElementById('atom-arrangement-check');
+    const atomArrangementType = document.getElementById('atom-arrangement-type');
+    const atomNodalRow = document.getElementById('atom-nodal-row');
+    const atomNodalCheck = document.getElementById('atom-nodal-check');
+    const atomNodalType = document.getElementById('atom-nodal-type');
+    const showSelectedOutlineCheck = document.getElementById('show-selected-outline-check');
+    const selectedOutlineSyncDesc = document.getElementById('selected-outline-sync-desc');
+    const showSelectedNodalCheck = document.getElementById('show-selected-nodal-check');
+    const selectedNodalSyncDesc = document.getElementById('selected-nodal-sync-desc');
+
+    function updateUI() {
+      atomCountEl.textContent = state.atoms.length;
+
+      const multiCountBadge = document.getElementById('multi-select-count-badge');
+      if (multiCountBadge) {
+        multiCountBadge.textContent = `${state.selectedIds.size} Selected`;
+      }
+
+      // Render Badges
+      atomBadgesListEl.innerHTML = '';
+      state.atoms.forEach(atom => {
+        const badge = document.createElement('div');
+        badge.className = 'atom-badge' + (state.selectedIds.has(atom.id) ? ' selected' : '');
+        const arrInfo = ARRANGEMENT_INFO[atom.orbitalType];
+        const outlineIcon = (atom.showArrangement && arrInfo) ? ` <span title="Outline: ${arrInfo.name} active" style="color: #84cc16; font-size: 10px; margin-left: 2px;">📐</span>` : '';
+        const nodInfo = NODAL_INFO[atom.orbitalType];
+        const nodalIcon = (atom.showNodalPlanes && nodInfo) ? ` <span title="Nodal: ${nodInfo.type} active" style="color: #38bdf8; font-size: 10px; margin-left: 2px;">⚪</span>` : '';
+        badge.innerHTML = `
+          <span class="badge-color-dot" style="background:${atom.color}"></span>
+          <span>${atom.name}</span>
+          <span style="font-size: 9px; color: var(--accent-cyan)">[${atom.orbitalType}]</span>
+          ${outlineIcon}${nodalIcon}
+        `;
+        badge.addEventListener('click', (e) => {
+          const isCtrl = e.ctrlKey || e.metaKey;
+          if (isCtrl) {
+            if (state.selectedIds.has(atom.id)) {
+              state.selectedIds.delete(atom.id);
+            } else {
+              state.selectedIds.add(atom.id);
+            }
+            state.atoms.forEach(a => a.setSelected(state.selectedIds.has(a.id)));
+            updateUI();
+          } else {
+            selectAtom(atom.id, false);
+          }
+        });
+
+        badge.title = `Click to select • Shift + Double Click to select all ${atom.element || 'atoms of this type'} • Double Click to focus`;
+        badge.addEventListener('dblclick', (e) => {
+          if (e.shiftKey) {
+            e.preventDefault();
+            selectAtomsByType(atom, e.ctrlKey || e.metaKey);
+          } else {
+            controls.target.copy(atom.position);
+            controls.update();
+            showToast(`Focused camera on ${atom.name}`, '🔍');
+          }
+        });
+
+        atomBadgesListEl.appendChild(badge);
+      });
+
+      const selected = getPrimarySelectedAtom();
+
+      if (selected) {
+        let avgX = 0, avgY = 0, avgZ = 0;
+        let count = 0;
+        state.selectedIds.forEach(id => {
+          const a = state.atoms.find(at => at.id === id);
+          if (a) {
+            avgX += a.position.x;
+            avgY += a.position.y;
+            avgZ += a.position.z;
+            count++;
+          }
+        });
+        if (count > 0) {
+          avgX /= count;
+          avgY /= count;
+          avgZ /= count;
+        }
+
+        prevSliderPosX = avgX;
+        prevSliderPosY = avgY;
+        prevSliderPosZ = avgZ;
+        posXSlider.value = avgX;
+        posYSlider.value = avgY;
+        posZSlider.value = avgZ;
+        posXVal.textContent = avgX.toFixed(1);
+        posYVal.textContent = avgY.toFixed(1);
+        posZVal.textContent = avgZ.toFixed(1);
+
+        const toDeg = 180 / Math.PI;
+        const degX = Math.round(selected.rotation.x * toDeg);
+        const degY = Math.round(selected.rotation.y * toDeg);
+        const degZ = Math.round(selected.rotation.z * toDeg);
+        prevSliderRotX = degX;
+        prevSliderRotY = degY;
+        prevSliderRotZ = degZ;
+        rotXSlider.value = degX;
+        rotYSlider.value = degY;
+        rotZSlider.value = degZ;
+        rotXVal.textContent = degX + '°';
+        rotYVal.textContent = degY + '°';
+        rotZVal.textContent = degZ + '°';
+
+        if (state.selectedIds.size > 1) {
+          selectedAtomLabelEl.textContent = `${state.selectedIds.size} Atoms Selected`;
+          hudSelectedTextEl.textContent = `${state.selectedIds.size} Atoms Selected • Center: (${avgX.toFixed(1)}, ${avgY.toFixed(1)}, ${avgZ.toFixed(1)}) • Adjust position, rotation & size in batch`;
+        } else {
+          selectedAtomLabelEl.textContent = `${selected.name}`;
+          const arrInfo = ARRANGEMENT_INFO[selected.orbitalType];
+          const arrStatus = arrInfo ? ` • Outline: ${selected.showArrangement ? arrInfo.name : 'Off'}` : '';
+          const nodInfo = NODAL_INFO[selected.orbitalType];
+          const nodStatus = (nodInfo && selected.showNodalPlanes) ? ` • Nodal: ${nodInfo.type}` : '';
+          hudSelectedTextEl.textContent = `${selected.name} • Orbital: [${selected.orbitalType.toUpperCase()}]${arrStatus}${nodStatus} • Pos: (${selected.position.x.toFixed(1)}, ${selected.position.y.toFixed(1)}, ${selected.position.z.toFixed(1)}) • Rot: (${degX}°, ${degY}°, ${degZ}°)`;
+        }
+
+        atomActionsGroupEl.style.display = 'grid';
+        atomColorInput.value = selected.color;
+        atomNameInput.value = selected.name;
+
+        atomRadiusSlider.value = selected.radius;
+        atomRadiusVal.textContent = selected.radius.toFixed(2);
+
+        const arrInfo = ARRANGEMENT_INFO[selected.orbitalType];
+        const nodInfo = NODAL_INFO[selected.orbitalType];
+
+        // Update Geometric Arrangement Outline Checkbox
+        if (arrInfo) {
+          atomArrangementCheck.disabled = false;
+          atomArrangementCheck.checked = !!selected.showArrangement;
+          atomArrangementType.textContent = `[${arrInfo.name} • ${arrInfo.regions} regions]`;
+          atomArrangementType.style.color = 'var(--accent-cyan)';
+
+          if (showSelectedOutlineCheck) {
+            showSelectedOutlineCheck.disabled = false;
+            showSelectedOutlineCheck.checked = !!selected.showArrangement;
+            selectedOutlineSyncDesc.textContent = `${arrInfo.name} (${selected.name})`;
+          }
+        } else {
+          atomArrangementCheck.disabled = true;
+          atomArrangementCheck.checked = false;
+          atomArrangementType.textContent = '[N/A for atomic s/p/d]';
+          atomArrangementType.style.color = 'var(--text-dim)';
+
+          if (showSelectedOutlineCheck) {
+            showSelectedOutlineCheck.disabled = true;
+            showSelectedOutlineCheck.checked = false;
+            selectedOutlineSyncDesc.textContent = 'Select hybrid atom';
+          }
+        }
+
+        // Update Nodal Surfaces Checkbox (Per-Atom)
+        if (nodInfo) {
+          atomNodalCheck.disabled = false;
+          atomNodalCheck.checked = !!selected.showNodalPlanes;
+          atomNodalType.textContent = `[${nodInfo.type}]`;
+          atomNodalType.style.color = 'var(--accent-cyan)';
+
+          if (showSelectedNodalCheck) {
+            showSelectedNodalCheck.disabled = false;
+            showSelectedNodalCheck.checked = !!selected.showNodalPlanes;
+            selectedNodalSyncDesc.textContent = `${nodInfo.type} (${selected.name})`;
+          }
+        } else {
+          atomNodalCheck.disabled = true;
+          atomNodalCheck.checked = false;
+          atomNodalType.textContent = '[N/A for hybrid/s]';
+          atomNodalType.style.color = 'var(--text-dim)';
+
+          if (showSelectedNodalCheck) {
+            showSelectedNodalCheck.disabled = true;
+            showSelectedNodalCheck.checked = false;
+            selectedNodalSyncDesc.textContent = 'Select p/d orbital atom';
+          }
+        }
+
+        // Highlight active orbital button in grid
+        document.querySelectorAll('.orbital-btn').forEach(btn => {
+          btn.classList.toggle('active', btn.dataset.orbital === selected.orbitalType);
+        });
+
+        orbitalDescBox.innerHTML = ORBITAL_DESCRIPTIONS[selected.orbitalType] || ORBITAL_DESCRIPTIONS.none;
+      } else {
+        selectedAtomLabelEl.textContent = 'None';
+        hudSelectedTextEl.textContent = 'No atom selected (Click an atom in 3D)';
+        atomActionsGroupEl.style.display = 'none';
+
+        rotXSlider.value = 0;
+        rotYSlider.value = 0;
+        rotZSlider.value = 0;
+        rotXVal.textContent = '0°';
+        rotYVal.textContent = '0°';
+        rotZVal.textContent = '0°';
+
+        atomArrangementCheck.disabled = true;
+        atomArrangementCheck.checked = false;
+        atomArrangementType.textContent = '[Select an atom]';
+        atomArrangementType.style.color = 'var(--text-dim)';
+
+        if (showSelectedOutlineCheck) {
+          showSelectedOutlineCheck.disabled = true;
+          showSelectedOutlineCheck.checked = false;
+          selectedOutlineSyncDesc.textContent = 'Select an atom';
+        }
+
+        atomNodalCheck.disabled = true;
+        atomNodalCheck.checked = false;
+        atomNodalType.textContent = '[Select an atom]';
+        atomNodalType.style.color = 'var(--text-dim)';
+
+        if (showSelectedNodalCheck) {
+          showSelectedNodalCheck.disabled = true;
+          showSelectedNodalCheck.checked = false;
+          selectedNodalSyncDesc.textContent = 'Select an atom';
+        }
+
+        document.querySelectorAll('.orbital-btn').forEach(btn => {
+          btn.classList.toggle('active', btn.dataset.orbital === 'none');
+        });
+        orbitalDescBox.innerHTML = ORBITAL_DESCRIPTIONS.none;
+      }
+    }
+
+    // Add Atom Button (Default: no orbital showing at first)
+    document.getElementById('add-atom-btn').addEventListener('click', () => {
+      const offset = (state.atoms.length * 1.5) % 6;
+      addAtom({
+        name: 'C' + (state.atoms.length + 1),
+        element: 'C',
+        color: '#334155',
+        radius: 0.42,
+        orbitalType: 'none', // Default no orbital at first so user can choose later!
+        position: new THREE.Vector3(offset - 2, 0, 0)
+      });
+    });
+
+    // Delete Atom Button
+    document.getElementById('del-atom-btn').addEventListener('click', () => {
+      const idsToDelete = Array.from(state.selectedIds);
+      if (idsToDelete.length > 0) {
+        idsToDelete.forEach(id => removeAtom(id));
+      }
+    });
+
+    // Duplicate Atom Button
+    document.getElementById('dup-atom-btn').addEventListener('click', () => {
+      const selected = getPrimarySelectedAtom();
+      if (!selected) return;
+      addAtom({
+        name: selected.name + '_copy',
+        color: selected.color,
+        radius: selected.radius,
+        orbitalType: selected.orbitalType,
+        showArrangement: selected.showArrangement,
+        showNodalPlanes: selected.showNodalPlanes,
+        rotation: selected.rotation.clone(),
+        position: selected.position.clone().add(new THREE.Vector3(1.5, 0, 0))
+      });
+    });
+
+    // Clear Board Button (Remove all atoms)
+    document.getElementById('clear-all-btn').addEventListener('click', () => {
+      clearAllAtoms();
+    });
+
+    // Toggle Arrangement Outline for Selected Atom(s)
+    function toggleSelectedArrangement(show) {
+      state.selectedIds.forEach(id => {
+        const atom = state.atoms.find(a => a.id === id);
+        if (atom && ARRANGEMENT_INFO[atom.orbitalType]) {
+          atom.updateArrangement(show);
+        }
+      });
+      updateUI();
+    }
+
+    // Toggle Nodal Surfaces for Selected Atom(s)
+    function toggleSelectedNodal(show) {
+      state.selectedIds.forEach(id => {
+        const atom = state.atoms.find(a => a.id === id);
+        if (atom && NODAL_INFO[atom.orbitalType]) {
+          atom.updateNodalPlanes(show);
+        }
+      });
+      updateUI();
+    }
+
+    atomArrangementCheck.addEventListener('change', (e) => {
+      toggleSelectedArrangement(e.target.checked);
+    });
+
+    if (showSelectedOutlineCheck) {
+      showSelectedOutlineCheck.addEventListener('change', (e) => {
+        toggleSelectedArrangement(e.target.checked);
+      });
+    }
+
+    atomNodalCheck.addEventListener('change', (e) => {
+      toggleSelectedNodal(e.target.checked);
+    });
+
+    if (showSelectedNodalCheck) {
+      showSelectedNodalCheck.addEventListener('change', (e) => {
+        toggleSelectedNodal(e.target.checked);
+      });
+    }
+
+    // Color & Name Inputs
+    atomColorInput.addEventListener('input', (e) => {
+      state.selectedIds.forEach(id => {
+        const atom = state.atoms.find(a => a.id === id);
+        if (atom) atom.updateColor(e.target.value);
+      });
+      updateUI();
+    });
+
+    atomNameInput.addEventListener('input', (e) => {
+      const selected = getPrimarySelectedAtom();
+      if (selected) {
+        selected.name = e.target.value;
+        selected.element = parseElementFromName(selected.name);
+        updateUI();
+      }
+    });
+
+    // Position Sliders (Single or Multiple Selected Atoms)
+    let prevSliderPosX = 0;
+    let prevSliderPosY = 0;
+    let prevSliderPosZ = 0;
+
+    posXSlider.addEventListener('input', (e) => {
+      const newX = parseFloat(e.target.value);
+      const deltaX = newX - prevSliderPosX;
+      prevSliderPosX = newX;
+      posXVal.textContent = newX.toFixed(1);
+
+      state.selectedIds.forEach(id => {
+        const atom = state.atoms.find(a => a.id === id);
+        if (atom) {
+          atom.updatePosition(atom.position.x + deltaX, atom.position.y, atom.position.z);
+        }
+      });
+      updateHudSelectionText();
+    });
+
+    posYSlider.addEventListener('input', (e) => {
+      const newY = parseFloat(e.target.value);
+      const deltaY = newY - prevSliderPosY;
+      prevSliderPosY = newY;
+      posYVal.textContent = newY.toFixed(1);
+
+      state.selectedIds.forEach(id => {
+        const atom = state.atoms.find(a => a.id === id);
+        if (atom) {
+          atom.updatePosition(atom.position.x, atom.position.y + deltaY, atom.position.z);
+        }
+      });
+      updateHudSelectionText();
+    });
+
+    posZSlider.addEventListener('input', (e) => {
+      const newZ = parseFloat(e.target.value);
+      const deltaZ = newZ - prevSliderPosZ;
+      prevSliderPosZ = newZ;
+      posZVal.textContent = newZ.toFixed(1);
+
+      state.selectedIds.forEach(id => {
+        const atom = state.atoms.find(a => a.id === id);
+        if (atom) {
+          atom.updatePosition(atom.position.x, atom.position.y, atom.position.z + deltaZ);
+        }
+      });
+      updateHudSelectionText();
+    });
+
+    // Rotation Sliders (Single or Multiple Selected Atoms)
+    let prevSliderRotX = 0;
+    let prevSliderRotY = 0;
+    let prevSliderRotZ = 0;
+
+    rotXSlider.addEventListener('input', (e) => {
+      const newDeg = parseFloat(e.target.value);
+      const deltaRad = (newDeg - prevSliderRotX) * (Math.PI / 180);
+      prevSliderRotX = newDeg;
+      rotXVal.textContent = Math.round(newDeg) + '°';
+
+      state.selectedIds.forEach(id => {
+        const atom = state.atoms.find(a => a.id === id);
+        if (atom) {
+          atom.rotation.x = (atom.rotation.x + deltaRad) % (Math.PI * 2);
+          atom.group.rotation.copy(atom.rotation);
+        }
+      });
+      updateHudSelectionText();
+    });
+
+    rotYSlider.addEventListener('input', (e) => {
+      const newDeg = parseFloat(e.target.value);
+      const deltaRad = (newDeg - prevSliderRotY) * (Math.PI / 180);
+      prevSliderRotY = newDeg;
+      rotYVal.textContent = Math.round(newDeg) + '°';
+
+      state.selectedIds.forEach(id => {
+        const atom = state.atoms.find(a => a.id === id);
+        if (atom) {
+          atom.rotation.y = (atom.rotation.y + deltaRad) % (Math.PI * 2);
+          atom.group.rotation.copy(atom.rotation);
+        }
+      });
+      updateHudSelectionText();
+    });
+
+    rotZSlider.addEventListener('input', (e) => {
+      const newDeg = parseFloat(e.target.value);
+      const deltaRad = (newDeg - prevSliderRotZ) * (Math.PI / 180);
+      prevSliderRotZ = newDeg;
+      rotZVal.textContent = Math.round(newDeg) + '°';
+
+      state.selectedIds.forEach(id => {
+        const atom = state.atoms.find(a => a.id === id);
+        if (atom) {
+          atom.rotation.z = (atom.rotation.z + deltaRad) % (Math.PI * 2);
+          atom.group.rotation.copy(atom.rotation);
+        }
+      });
+      updateHudSelectionText();
+    });
+
+    // Quick Step Rotation per Axis for All Selected Atoms (+90°, -90°, 180°)
+    function rotateSelectedAtomsAxisDelta(axis, deg) {
+      if (state.selectedIds.size === 0) return;
+      const rad = deg * (Math.PI / 180);
+      state.selectedIds.forEach(id => {
+        const atom = state.atoms.find(a => a.id === id);
+        if (atom) {
+          atom.rotation[axis] = (atom.rotation[axis] + rad) % (Math.PI * 2);
+          atom.group.rotation.copy(atom.rotation);
+        }
+      });
+      updateUI();
+      showToast(`Rotated selected ${axis.toUpperCase()} by ${deg > 0 ? '+' : ''}${deg}°`, '🔄');
+    }
+
+    document.querySelectorAll('.rot-step-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const axis = btn.dataset.axis;
+        const deg = parseFloat(btn.dataset.deg);
+        rotateSelectedAtomsAxisDelta(axis, deg);
+      });
+    });
+
+    const rotQuickResetBtn = document.getElementById('rot-quick-reset');
+    if (rotQuickResetBtn) {
+      rotQuickResetBtn.addEventListener('click', () => {
+        state.selectedIds.forEach(id => {
+          const atom = state.atoms.find(a => a.id === id);
+          if (atom) atom.updateRotation(0, 0, 0);
+        });
+        updateUI();
+        showToast('Reset rotation to 0°', '⟲');
+      });
+    }
+
+    function updateHudSelectionText() {
+      const selected = getPrimarySelectedAtom();
+      if (!selected) {
+        hudSelectedTextEl.textContent = 'No atom selected (Click an atom in 3D)';
+        return;
+      }
+      if (state.selectedIds.size > 1) {
+        hudSelectedTextEl.textContent = `${state.selectedIds.size} Atoms Selected • Group Pos: (${prevSliderPosX.toFixed(1)}, ${prevSliderPosY.toFixed(1)}, ${prevSliderPosZ.toFixed(1)})`;
+      } else {
+        const toDeg = 180 / Math.PI;
+        const degX = Math.round(selected.rotation.x * toDeg);
+        const degY = Math.round(selected.rotation.y * toDeg);
+        const degZ = Math.round(selected.rotation.z * toDeg);
+        hudSelectedTextEl.textContent = `${selected.name} • Orbital: [${selected.orbitalType.toUpperCase()}] • Pos: (${selected.position.x.toFixed(1)}, ${selected.position.y.toFixed(1)}, ${selected.position.z.toFixed(1)}) • Rot: (${degX}°, ${degY}°, ${degZ}°)`;
+      }
+    }
+
+    // Atom Radius
+    atomRadiusSlider.addEventListener('input', (e) => {
+      const r = parseFloat(e.target.value);
+      atomRadiusVal.textContent = r.toFixed(2);
+      state.selectedIds.forEach(id => {
+        const atom = state.atoms.find(a => a.id === id);
+        if (atom) atom.updateRadius(r);
+      });
+    });
+
+    // Quick Element Presets
+    document.querySelectorAll('.elem-chip').forEach(chip => {
+      chip.addEventListener('click', () => {
+        const elemName = chip.dataset.name;
+        const color = chip.dataset.color;
+        const selected = getPrimarySelectedAtom();
+
+        if (selected) {
+          selected.updateColor(color);
+          selected.name = elemName + selected.id.replace('atom_', '');
+          selected.element = elemName;
+          updateUI();
+        } else {
+          // If none selected, create new with this element
+          addAtom({
+            name: elemName + (state.atoms.length + 1),
+            element: elemName,
+            color: color,
+            orbitalType: 'none' // Default no orbital at first
+          });
+        }
+      });
+    });
+
+    // Orbital Grid Click Handlers
+    document.querySelectorAll('.orbital-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const orbType = btn.dataset.orbital;
+        if (state.selectedIds.size === 0 && state.atoms.length > 0) {
+          // Select first atom if none selected
+          selectAtom(state.atoms[0].id);
+        }
+
+        state.selectedIds.forEach(id => {
+          const atom = state.atoms.find(a => a.id === id);
+          if (atom) atom.updateOrbital(orbType);
+        });
+        updateUI();
+      });
+    });
+
+    // Orbital Styling Controls
+    document.getElementById('orb-scale-slider').addEventListener('input', (e) => {
+      state.orbitalScale = parseFloat(e.target.value);
+      document.getElementById('orb-scale-val').textContent = state.orbitalScale.toFixed(1) + '×';
+      state.atoms.forEach(atom => atom.rebuildOrbital());
+    });
+
+    document.getElementById('orb-opacity-slider').addEventListener('input', (e) => {
+      state.orbitalOpacity = parseFloat(e.target.value);
+      document.getElementById('orb-opacity-val').textContent = state.orbitalOpacity.toFixed(2);
+      state.atoms.forEach(atom => atom.rebuildOrbital());
+    });
+
+    document.getElementById('show-back-lobes-check').addEventListener('change', (e) => {
+      state.showBackLobes = e.target.checked;
+      state.atoms.forEach(atom => atom.rebuildOrbital());
+    });
+
+    document.getElementById('show-unhybrid-p-check').addEventListener('change', (e) => {
+      state.showUnhybridP = e.target.checked;
+      state.atoms.forEach(atom => atom.rebuildOrbital());
+    });
+
+    // Reset Camera Button
+    document.getElementById('reset-cam-btn').addEventListener('click', () => {
+      camera.position.set(0, 3, 10);
+      controls.target.set(0, 0, 0);
+      controls.update();
+    });
+
+    // Mode Toggle (Orbit vs Build vs Multiple Selection)
+    const modeOrbitBtn = document.getElementById('mode-orbit-btn');
+    const modeBuildBtn = document.getElementById('mode-build-btn');
+    const modeBoxBtn = document.getElementById('mode-box-btn');
+    const quickBuildIndicator = document.getElementById('quick-build-indicator');
+
+    function setInteractionMode(mode) {
+      state.mode = mode;
+      document.body.className = `mode-${mode}`;
+
+      if (modeOrbitBtn) modeOrbitBtn.classList.toggle('active', mode === 'orbit');
+      if (modeBuildBtn) modeBuildBtn.classList.toggle('active', mode === 'build');
+      if (modeBoxBtn) modeBoxBtn.classList.toggle('active', mode === 'box');
+
+      const banner = document.getElementById('sidebar-mode-banner');
+      if (banner) {
+        if (mode === 'orbit') {
+          banner.innerHTML = `<span>🔄</span> <div><strong>Orbit Mode:</strong> Inspect 3D orbitals & molecules. Use teaching demos below.</div>`;
+        } else if (mode === 'build') {
+          banner.innerHTML = `<span>🔨</span> <div><strong>Build Mode:</strong> Click any orbital lobe to attach atoms, or manually position & rotate.</div>`;
+        } else if (mode === 'box') {
+          banner.innerHTML = `<span>⬚</span> <div><strong>Multiple Selection:</strong> Shift+drag to box-select. Batch edit or bridge π-orbitals.</div>`;
+        }
+      }
+
+      controls.enabled = (mode === 'orbit' || mode === 'build');
+      if (mode !== 'build') {
+        quickBuildPreview.visible = false;
+        previewLine.visible = false;
+        renderer.domElement.style.cursor = 'default';
+      }
+    }
+
+    if (modeOrbitBtn) modeOrbitBtn.addEventListener('click', () => setInteractionMode('orbit'));
+    if (modeBuildBtn) modeBuildBtn.addEventListener('click', () => setInteractionMode('build'));
+    if (modeBoxBtn) modeBoxBtn.addEventListener('click', () => setInteractionMode('box'));
+
+    // Quick Attach Toolbar Presets
+    document.querySelectorAll('.quick-attach-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.quick-attach-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        state.quickBuildElem = btn.dataset.elem;
+        state.quickBuildOrbital = btn.dataset.orbital;
+        setInteractionMode('build');
+      });
+    });
+
+    // Multiple Selection Mode Batch Controls
+    const multiSelectAllBtn = document.getElementById('multi-select-all-btn');
+    if (multiSelectAllBtn) {
+      multiSelectAllBtn.addEventListener('click', () => {
+        state.atoms.forEach(a => state.selectedIds.add(a.id));
+        state.atoms.forEach(a => a.setSelected(true));
+        updateUI();
+      });
+    }
+
+    const multiDeselectAllBtn = document.getElementById('multi-deselect-all-btn');
+    if (multiDeselectAllBtn) {
+      multiDeselectAllBtn.addEventListener('click', () => {
+        selectAtom(null);
+      });
+    }
+
+    const batchColorInput = document.getElementById('batch-color-input');
+    if (batchColorInput) {
+      batchColorInput.addEventListener('input', (e) => {
+        state.selectedIds.forEach(id => {
+          const atom = state.atoms.find(a => a.id === id);
+          if (atom) atom.updateColor(e.target.value);
+        });
+        updateUI();
+      });
+    }
+
+    document.querySelectorAll('.batch-orb-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const orb = btn.dataset.orbital;
+        state.selectedIds.forEach(id => {
+          const atom = state.atoms.find(a => a.id === id);
+          if (atom) atom.updateOrbital(orb);
+        });
+        updateUI();
+      });
+    });
+
+    const batchOutlineToggleBtn = document.getElementById('batch-outline-toggle-btn');
+    if (batchOutlineToggleBtn) {
+      batchOutlineToggleBtn.addEventListener('click', () => {
+        let anyOn = false;
+        state.selectedIds.forEach(id => {
+          const atom = state.atoms.find(a => a.id === id);
+          if (atom && atom.showArrangement) anyOn = true;
+        });
+        const newState = !anyOn;
+        state.selectedIds.forEach(id => {
+          const atom = state.atoms.find(a => a.id === id);
+          if (atom && ARRANGEMENT_INFO[atom.orbitalType]) atom.updateArrangement(newState);
+        });
+        updateUI();
+      });
+    }
+
+    const batchNodalToggleBtn = document.getElementById('batch-nodal-toggle-btn');
+    if (batchNodalToggleBtn) {
+      batchNodalToggleBtn.addEventListener('click', () => {
+        let anyOn = false;
+        state.selectedIds.forEach(id => {
+          const atom = state.atoms.find(a => a.id === id);
+          if (atom && atom.showNodalPlanes) anyOn = true;
+        });
+        const newState = !anyOn;
+        state.selectedIds.forEach(id => {
+          const atom = state.atoms.find(a => a.id === id);
+          if (atom && NODAL_INFO[atom.orbitalType]) atom.updateNodalPlanes(newState);
+        });
+        updateUI();
+      });
+    }
+
+    const batchDuplicateBtn = document.getElementById('batch-duplicate-btn');
+    if (batchDuplicateBtn) {
+      batchDuplicateBtn.addEventListener('click', () => {
+        const ids = Array.from(state.selectedIds);
+        const newIds = [];
+        ids.forEach(id => {
+          const atom = state.atoms.find(a => a.id === id);
+          if (atom) {
+            const newAtom = addAtom({
+              name: atom.name + '_copy',
+              color: atom.color,
+              radius: atom.radius,
+              orbitalType: atom.orbitalType,
+              showArrangement: atom.showArrangement,
+              showNodalPlanes: atom.showNodalPlanes,
+              rotation: atom.rotation.clone(),
+              position: atom.position.clone().add(new THREE.Vector3(1.5, 0, 0))
+            });
+            newIds.push(newAtom.id);
+          }
+        });
+        state.selectedIds.clear();
+        newIds.forEach(id => state.selectedIds.add(id));
+        updateUI();
+      });
+    }
+
+    const batchDeleteBtn = document.getElementById('batch-delete-btn');
+    if (batchDeleteBtn) {
+      batchDeleteBtn.addEventListener('click', () => {
+        const ids = Array.from(state.selectedIds);
+        ids.forEach(id => removeAtom(id));
+      });
+    }
+
+    const bridgeOrbitalsBtn = document.getElementById('bridge-orbitals-btn');
+    if (bridgeOrbitalsBtn) {
+      bridgeOrbitalsBtn.addEventListener('click', () => {
+        bridgeSelectedOrbitals();
+      });
+    }
+
+    const alignPhasesBtn = document.getElementById('align-phases-btn');
+    if (alignPhasesBtn) {
+      alignPhasesBtn.addEventListener('click', () => {
+        alignSelectedPhases();
+      });
+    }
+
+    const clearBridgesBtn = document.getElementById('clear-bridges-btn');
+    if (clearBridgesBtn) {
+      clearBridgesBtn.addEventListener('click', () => {
+        clearAllBridges();
+      });
+    }
+
+    /* =========================================================================
+       Orbital Bridging & π-Bond System (C2H4, C2H2, Benzene, Multiple Selection)
+       ========================================================================= */
+
+    function clearAllBridges() {
+      while (bridgeGroup.children.length > 0) {
+        const obj = bridgeGroup.children[0];
+        bridgeGroup.remove(obj);
+        obj.traverse(child => {
+          if (child.geometry) child.geometry.dispose();
+          if (child.material) {
+            if (Array.isArray(child.material)) child.material.forEach(m => m.dispose());
+            else child.material.dispose();
+          }
+        });
+      }
+      state.bridges = [];
+    }
+
+    /**
+     * Billboard text sprite creator using high-DPI 2D canvas
+     */
+    function makeTextSprite(message, color = '#84cc16') {
+      const canvas = document.createElement('canvas');
+      canvas.width = 380;
+      canvas.height = 80;
+      const ctx = canvas.getContext('2d');
+
+      ctx.fillStyle = 'rgba(15, 23, 42, 0.90)';
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      ctx.roundRect(8, 8, 364, 64, 12);
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.font = 'bold 21px "JetBrains Mono", sans-serif';
+      ctx.fillStyle = color;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(message, 190, 40);
+
+      const texture = new THREE.CanvasTexture(canvas);
+      const mat = new THREE.SpriteMaterial({ map: texture, transparent: true, opacity: 0.95, depthTest: false });
+      const sprite = new THREE.Sprite(mat);
+      sprite.scale.set(1.9, 0.40, 1);
+      return sprite;
+    }
+
+    /**
+     * Creates a textbook-accurate Bonding π-orbital bridge between atomA and atomB
+     * (Constructive in-phase overlap: Red connects to Red, Blue connects to Blue)
+     * - Continuous upper lobe cloud (Red, + phase)
+     * - Continuous lower lobe cloud (Blue, - phase)
+     * - Horizontal Internuclear Nodal Plane (Light Blue translucent sheet through nuclei)
+     * - Textbook dashed guide lines
+     * - Billboard label π_p
+     */
+    function createPiBridgePair(atomA, atomB, axisVector = new THREE.Vector3(0, 0, 1), labelText = 'π (Bonding)') {
+      const pA = atomA.position.clone();
+      const pB = atomB.position.clone();
+      const dist = pA.distanceTo(pB);
+      if (dist < 0.2 || dist > 6.0) return;
+
+      const norm = axisVector.clone().normalize();
+      const bondDir = pB.clone().sub(pA).normalize();
+      const midPoint = pA.clone().add(pB).multiplyScalar(0.5);
+      const hPeak = 1.45;
+
+      // 1. Top Lobe Bridge (+ phase, Red)
+      const topA = pA.clone().add(norm.clone().multiplyScalar(hPeak));
+      const topB = pB.clone().add(norm.clone().multiplyScalar(hPeak));
+      const topMid = topA.clone().add(topB).multiplyScalar(0.5).add(norm.clone().multiplyScalar(0.24));
+
+      const topCurve = new THREE.CatmullRomCurve3([topA, topMid, topB]);
+      const topTubeGeom = new THREE.TubeGeometry(topCurve, 24, 0.36, 16, false);
+      const topTubeMat = createOrbitalMaterial(COLOR_POS_PHASE, Math.max(0.22, state.orbitalOpacity * 1.4));
+      const topTubeMesh = new THREE.Mesh(topTubeGeom, topTubeMat);
+      bridgeGroup.add(topTubeMesh);
+
+      // 2. Bottom Lobe Bridge (- phase, Blue)
+      const botA = pA.clone().sub(norm.clone().multiplyScalar(hPeak));
+      const botB = pB.clone().sub(norm.clone().multiplyScalar(hPeak));
+      const botMid = botA.clone().add(botB).multiplyScalar(0.5).sub(norm.clone().multiplyScalar(0.24));
+
+      const botCurve = new THREE.CatmullRomCurve3([botA, botMid, botB]);
+      const botTubeGeom = new THREE.TubeGeometry(botCurve, 24, 0.36, 16, false);
+      const botTubeMat = createOrbitalMaterial(COLOR_NEG_PHASE, Math.max(0.22, state.orbitalOpacity * 1.4));
+      const botTubeMesh = new THREE.Mesh(botTubeGeom, botTubeMat);
+      bridgeGroup.add(botTubeMesh);
+
+      // 3. Textbook Dashed Lines (Green)
+      const dashedMat = new THREE.LineDashedMaterial({
+        color: 0x84cc16,
+        dashSize: 0.12,
+        gapSize: 0.08,
+        transparent: true,
+        opacity: 0.95
+      });
+
+      const topDashedGeom = new THREE.BufferGeometry().setFromPoints([topA, topB]);
+      const topDashedLine = new THREE.Line(topDashedGeom, dashedMat);
+      topDashedLine.computeLineDistances();
+      bridgeGroup.add(topDashedLine);
+
+      const botDashedGeom = new THREE.BufferGeometry().setFromPoints([botA, botB]);
+      const botDashedLine = new THREE.Line(botDashedGeom, dashedMat);
+      botDashedLine.computeLineDistances();
+      bridgeGroup.add(botDashedLine);
+
+      // 4. Horizontal Internuclear Nodal Plane (Light Blue translucent sheet, as in textbook media_1790256510078.png)
+      const internuclearPlaneGeom = new THREE.PlaneGeometry(dist + 0.9, 1.8);
+      const internuclearPlaneMat = new THREE.MeshBasicMaterial({
+        color: 0x93c5fd,
+        transparent: true,
+        opacity: 0.28,
+        side: THREE.DoubleSide,
+        depthWrite: false
+      });
+      const planeMesh = new THREE.Mesh(internuclearPlaneGeom, internuclearPlaneMat);
+      planeMesh.position.copy(midPoint);
+
+      const planeRight = bondDir.clone();
+      const planeUp = norm.clone().cross(planeRight).normalize();
+      const rotMatrix = new THREE.Matrix4().makeBasis(planeRight, planeUp, norm);
+      planeMesh.quaternion.setFromRotationMatrix(rotMatrix);
+      bridgeGroup.add(planeMesh);
+
+      const planeEdgesGeom = new THREE.EdgesGeometry(internuclearPlaneGeom);
+      const planeEdgesMat = new THREE.LineBasicMaterial({ color: 0x60a5fa, transparent: true, opacity: 0.7 });
+      planeMesh.add(new THREE.LineSegments(planeEdgesGeom, planeEdgesMat));
+
+      // 5. Billboard π Label Sprite
+      if (labelText) {
+        const sprite = makeTextSprite(labelText, '#84cc16');
+        sprite.position.copy(topMid.clone().add(norm.clone().multiplyScalar(0.40)));
+        bridgeGroup.add(sprite);
+      }
+
+      state.bridges.push({ atomAId: atomA.id, atomBId: atomB.id, axis: norm, type: 'bonding' });
+    }
+
+    /**
+     * Creates a textbook-accurate Antibonding π*-orbital representation
+     * (matching textbook figure media_1790256510078.png):
+     * - Destructive out-of-phase overlap (Red faces Blue): No continuous cloud
+     * - Vertical Nodal Plane midway between atoms (Pink translucent sheet, where psi = 0)
+     * - Horizontal Internuclear Nodal Plane (Light Blue translucent sheet through both nuclei)
+     * - Billboard label π*_p
+     */
+    function createAntibondingNodalPair(atomA, atomB, axisVector = new THREE.Vector3(0, 0, 1), labelText = 'π* (Antibonding)') {
+      const pA = atomA.position.clone();
+      const pB = atomB.position.clone();
+      const dist = pA.distanceTo(pB);
+      if (dist < 0.2 || dist > 6.0) return;
+
+      const norm = axisVector.clone().normalize();
+      const bondDir = pB.clone().sub(pA).normalize();
+      const midPoint = pA.clone().add(pB).multiplyScalar(0.5);
+
+      // 1. Vertical Nodal Plane (Pink translucent sheet midway between nuclei, perpendicular to bond axis)
+      const vertPlaneGeom = new THREE.PlaneGeometry(3.0, 3.4);
+      const vertPlaneMat = new THREE.MeshBasicMaterial({
+        color: 0xf472b6, // Soft pink/rose sheet
+        transparent: true,
+        opacity: 0.32,
+        side: THREE.DoubleSide,
+        depthWrite: false
+      });
+      const vertPlaneMesh = new THREE.Mesh(vertPlaneGeom, vertPlaneMat);
+      vertPlaneMesh.position.copy(midPoint);
+      vertPlaneMesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), bondDir);
+      bridgeGroup.add(vertPlaneMesh);
+
+      const vertEdgesGeom = new THREE.EdgesGeometry(vertPlaneGeom);
+      const vertEdgesMat = new THREE.LineBasicMaterial({ color: 0xf43f5e, transparent: true, opacity: 0.85 });
+      vertPlaneMesh.add(new THREE.LineSegments(vertEdgesGeom, vertEdgesMat));
+
+      // 2. Horizontal Internuclear Nodal Plane (Light Blue translucent sheet through both nuclei)
+      const horizPlaneGeom = new THREE.PlaneGeometry(dist + 0.8, 1.8);
+      const horizPlaneMat = new THREE.MeshBasicMaterial({
+        color: 0x93c5fd,
+        transparent: true,
+        opacity: 0.25,
+        side: THREE.DoubleSide,
+        depthWrite: false
+      });
+      const horizPlaneMesh = new THREE.Mesh(horizPlaneGeom, horizPlaneMat);
+      horizPlaneMesh.position.copy(midPoint);
+
+      const planeRight = bondDir.clone();
+      const planeUp = norm.clone().cross(planeRight).normalize();
+      const rotMatrix = new THREE.Matrix4().makeBasis(planeRight, planeUp, norm);
+      horizPlaneMesh.quaternion.setFromRotationMatrix(rotMatrix);
+      bridgeGroup.add(horizPlaneMesh);
+
+      const horizEdgesGeom = new THREE.EdgesGeometry(horizPlaneGeom);
+      const horizEdgesMat = new THREE.LineBasicMaterial({ color: 0x60a5fa, transparent: true, opacity: 0.65 });
+      horizPlaneMesh.add(new THREE.LineSegments(horizEdgesGeom, horizEdgesMat));
+
+      // 3. Billboard π* Label Sprite (Pink/Rose)
+      if (labelText) {
+        const sprite = makeTextSprite(labelText, '#f43f5e');
+        sprite.position.copy(midPoint.clone().add(norm.clone().multiplyScalar(1.95)));
+        bridgeGroup.add(sprite);
+      }
+
+      state.bridges.push({ atomAId: atomA.id, atomBId: atomB.id, axis: norm, type: 'antibonding' });
+    }
+
+    /**
+     * Creates the continuous toroidal delocalized π-electron cloud for aromatic rings (Benzene)
+     */
+    function createAromaticDelocalizedRing(centerPos, radius = 1.95, zHeight = 1.40) {
+      const upperTorusGeom = new THREE.TorusGeometry(radius, 0.38, 24, 48);
+      const upperTorusMat = createOrbitalMaterial(COLOR_POS_PHASE, Math.max(0.20, state.orbitalOpacity * 1.4));
+      const upperTorusMesh = new THREE.Mesh(upperTorusGeom, upperTorusMat);
+      upperTorusMesh.position.copy(centerPos).add(new THREE.Vector3(0, 0, zHeight));
+      bridgeGroup.add(upperTorusMesh);
+
+      const lowerTorusGeom = new THREE.TorusGeometry(radius, 0.38, 24, 48);
+      const lowerTorusMat = createOrbitalMaterial(COLOR_NEG_PHASE, Math.max(0.20, state.orbitalOpacity * 1.4));
+      const lowerTorusMesh = new THREE.Mesh(lowerTorusGeom, lowerTorusMat);
+      lowerTorusMesh.position.copy(centerPos).add(new THREE.Vector3(0, 0, -zHeight));
+      bridgeGroup.add(lowerTorusMesh);
+
+      const sprite = makeTextSprite('Delocalized π-Ring (6 e⁻)', '#38bdf8');
+      sprite.position.copy(centerPos).add(new THREE.Vector3(0, 0, zHeight + 0.65));
+      bridgeGroup.add(sprite);
+    }
+
+    function drawBondLine(p1, p2, color = 0x64748b, dashed = false) {
+      const geom = new THREE.BufferGeometry().setFromPoints([p1, p2]);
+      let line;
+      if (dashed) {
+        const mat = new THREE.LineDashedMaterial({ color: color, dashSize: 0.12, gapSize: 0.08, transparent: true, opacity: 0.85 });
+        line = new THREE.Line(geom, mat);
+        line.computeLineDistances();
+      } else {
+        const mat = new THREE.LineBasicMaterial({ color: color, transparent: true, opacity: 0.75, linewidth: 2 });
+        line = new THREE.Line(geom, mat);
+      }
+      bridgeGroup.add(line);
+      return line;
+    }
+
+    /**
+     * Extracts all p-orbital orientation axes in world space for an atom
+     */
+    function getAtomUnhybridAxes(atom) {
+      const axes = [];
+      const type = atom.orbitalType;
+      if (type === 'sp2') {
+        axes.push({ local: new THREE.Vector3(0, 0, 1), name: 'pz' });
+      } else if (type === 'sp') {
+        axes.push({ local: new THREE.Vector3(0, 0, 1), name: 'pz' });
+        axes.push({ local: new THREE.Vector3(0, 1, 0), name: 'py' });
+      } else if (type === 'pz') {
+        axes.push({ local: new THREE.Vector3(0, 0, 1), name: 'pz' });
+      } else if (type === 'py') {
+        axes.push({ local: new THREE.Vector3(0, 1, 0), name: 'py' });
+      } else if (type === 'px') {
+        axes.push({ local: new THREE.Vector3(1, 0, 0), name: 'px' });
+      } else if (type === 'p_all') {
+        axes.push({ local: new THREE.Vector3(0, 0, 1), name: 'pz' });
+        axes.push({ local: new THREE.Vector3(0, 1, 0), name: 'py' });
+        axes.push({ local: new THREE.Vector3(1, 0, 0), name: 'px' });
+      }
+      return axes.map(a => ({
+        name: a.name,
+        // World direction of positive (+/Red) lobe
+        worldPosDir: a.local.clone().applyEuler(atom.rotation).normalize()
+      }));
+    }
+
+    /**
+     * Form molecular orbital bridges or antibonding nodal planes between selected atoms
+     * Checks phase alignment: Same-colored lobes face each other -> Bonding π
+     * Opposite-colored lobes face each other -> Antibonding π* with vertical nodal plane
+     */
+    function bridgeSelectedOrbitals() {
+      const selected = Array.from(state.selectedIds).map(id => state.atoms.find(a => a.id === id)).filter(Boolean);
+      if (selected.length < 2) {
+        alert('Please select 2 or more atoms (using Box Marquee or Ctrl+Click) to test orbital overlap & form a π or π* bond!');
+        return;
+      }
+
+      let bondingCount = 0;
+      let antibondingCount = 0;
+      let nonParallelCount = 0;
+
+      for (let i = 0; i < selected.length; i++) {
+        for (let j = i + 1; j < selected.length; j++) {
+          const a = selected[i];
+          const b = selected[j];
+          const dist = a.position.distanceTo(b.position);
+          if (dist <= 0.4 || dist > 4.2) continue;
+
+          const bondDir = b.position.clone().sub(a.position).normalize();
+          const axesA = getAtomUnhybridAxes(a);
+          const axesB = getAtomUnhybridAxes(b);
+
+          if (axesA.length === 0 || axesB.length === 0) continue;
+
+          const pairedB = new Set();
+
+          axesA.forEach(axA => {
+            let bestB = null;
+            let bestDot = 0;
+            let bestAbsDot = 0;
+
+            axesB.forEach((axB, idxB) => {
+              if (pairedB.has(idxB)) return;
+
+              // Both must be roughly perpendicular to internuclear bond axis for lateral pi overlap
+              if (Math.abs(axA.worldPosDir.dot(bondDir)) > 0.65) return;
+              if (Math.abs(axB.worldPosDir.dot(bondDir)) > 0.65) return;
+
+              const dot = axA.worldPosDir.dot(axB.worldPosDir);
+              if (Math.abs(dot) > bestAbsDot) {
+                bestAbsDot = Math.abs(dot);
+                bestDot = dot;
+                bestB = { ax: axB, idx: idxB };
+              }
+            });
+
+            if (bestB && bestAbsDot >= 0.65) {
+              pairedB.add(bestB.idx);
+              const label = `${axA.name}-${bestB.ax.name}`;
+
+              if (bestDot >= 0.65) {
+                // IN-PHASE OVERLAP (Red to Red, Blue to Blue) -> Bonding π
+                const avgNorm = axA.worldPosDir.clone().add(bestB.ax.worldPosDir).normalize();
+                createPiBridgePair(a, b, avgNorm, `π(${label}) Bonding`);
+                bondingCount++;
+              } else {
+                // OUT-OF-PHASE OVERLAP (Red faces Blue) -> Antibonding π*
+                createAntibondingNodalPair(a, b, axA.worldPosDir, `π*(${label}) Antibonding`);
+                antibondingCount++;
+              }
+            } else if (bestB && bestAbsDot < 0.65) {
+              nonParallelCount++;
+            }
+          });
+        }
+      }
+
+      if (bondingCount > 0 && antibondingCount === 0) {
+        showToast(`✨ Formed ${bondingCount} Bonding π-Bond(s)! In-phase (Red-to-Red, Blue-to-Blue) connected into continuous π cloud.`, '✨');
+      } else if (antibondingCount > 0 && bondingCount === 0) {
+        showToast(`⚠️ Out-of-Phase Overlap: Formed ${antibondingCount} Antibonding π* with Vertical Nodal Plane! Red faces Blue. Rotate 180° to align same colors.`, '⚠️');
+      } else if (bondingCount > 0 && antibondingCount > 0) {
+        showToast(`Formed ${bondingCount} Bonding π and ${antibondingCount} Antibonding π* states! Check phase colors.`, 'ℹ️');
+      } else {
+        alert('Could not form π-bonds. Ensure selected atoms are within 4.0 units, have p or hybrid orbitals (sp, sp²), and their p-axes are parallel (lateral to the bond).');
+      }
+    }
+
+    /**
+     * Auto-align phases between 2 selected atoms by rotating the second atom 180°
+     */
+    function alignSelectedPhases() {
+      const selected = Array.from(state.selectedIds).map(id => state.atoms.find(a => a.id === id)).filter(Boolean);
+      if (selected.length < 2) {
+        showToast('Select 2 atoms to auto-align their orbital phases', 'ℹ️');
+        return;
+      }
+      const a = selected[0];
+      const b = selected[1];
+      const axesA = getAtomUnhybridAxes(a);
+      const axesB = getAtomUnhybridAxes(b);
+      if (axesA.length === 0 || axesB.length === 0) {
+        showToast('Selected atoms must have p or hybrid orbitals to align', '⚠️');
+        return;
+      }
+
+      const dot = axesA[0].worldPosDir.dot(axesB[0].worldPosDir);
+      if (dot < 0.65) {
+        // Rotate atom B by 180° around X axis (or Y if along X) to flip phase
+        b.rotation.x = (b.rotation.x + Math.PI) % (Math.PI * 2);
+        b.group.rotation.copy(b.rotation);
+        updateUI();
+      }
+      clearAllBridges();
+      bridgeSelectedOrbitals();
+    }
+
+    /* =========================================================================
+       Teaching Presets (Methane, Ethylene, Acetylene, Benzene, Cyclohexane, Graphene)
+       ========================================================================= */
+
+    function clearAllAtoms() {
+      clearAllBridges();
+      state.atoms.forEach(a => a.destroy());
+      state.atoms = [];
+      state.selectedIds.clear();
+      updateUI();
+    }
+
+    // Preset 1: Methane (CH4) sp3
+    document.getElementById('preset-sp3-ch4').addEventListener('click', () => {
+      clearAllAtoms();
+      camera.position.set(0, 2, 7.5);
+      controls.target.set(0, 0, 0);
+
+      const c = addAtom({
+        name: 'C',
+        color: '#334155',
+        radius: 0.42,
+        orbitalType: 'sp3',
+        position: new THREE.Vector3(0, 0, 0)
+      });
+
+      const bondDist = 1.95;
+      const tetraVectors = [
+        new THREE.Vector3( 1,  1,  1).normalize(),
+        new THREE.Vector3(-1, -1,  1).normalize(),
+        new THREE.Vector3(-1,  1, -1).normalize(),
+        new THREE.Vector3( 1, -1, -1).normalize()
+      ];
+
+      tetraVectors.forEach((v, idx) => {
+        addAtom({
+          name: 'H' + (idx + 1),
+          color: '#ffffff',
+          radius: 0.26,
+          orbitalType: 's',
+          position: v.clone().multiplyScalar(bondDist)
+        });
+      });
+
+      selectAtom(c.id);
+    });
+
+    // Preset 2: Ethylene (C2H4) sp2 with π-Bond Bridge & 4 Hydrogens
+    document.getElementById('preset-sp2-c2h4').addEventListener('click', () => {
+      clearAllAtoms();
+      camera.position.set(0, 3, 9);
+      controls.target.set(0, 0, 0);
+
+      // C1 at -1.2, C2 at +1.2. Head-to-head sp2 large heads meet at X = 0!
+      const c1 = addAtom({
+        name: 'C1',
+        color: '#334155',
+        radius: 0.42,
+        orbitalType: 'sp2',
+        position: new THREE.Vector3(-1.2, 0, 0)
+      });
+
+      const c2 = addAtom({
+        name: 'C2',
+        color: '#334155',
+        radius: 0.42,
+        orbitalType: 'sp2',
+        position: new THREE.Vector3(1.2, 0, 0)
+      });
+      c2.updateRotation(0, 0, Math.PI);
+
+      // 4 Hydrogens with small s-orbitals
+      const hDist = 1.95;
+      const cos30 = Math.cos(Math.PI / 6);
+      const sin30 = Math.sin(Math.PI / 6);
+
+      addAtom({ name: 'H1', color: '#ffffff', radius: 0.26, orbitalType: 's', position: new THREE.Vector3(-1.2 - hDist * cos30, hDist * sin30, 0) });
+      addAtom({ name: 'H2', color: '#ffffff', radius: 0.26, orbitalType: 's', position: new THREE.Vector3(-1.2 - hDist * cos30, -hDist * sin30, 0) });
+      addAtom({ name: 'H3', color: '#ffffff', radius: 0.26, orbitalType: 's', position: new THREE.Vector3(1.2 + hDist * cos30, hDist * sin30, 0) });
+      addAtom({ name: 'H4', color: '#ffffff', radius: 0.26, orbitalType: 's', position: new THREE.Vector3(1.2 + hDist * cos30, -hDist * sin30, 0) });
+
+      // Automatically construct the textbook π-bond bridge (matching C2H4 figure!)
+      createPiBridgePair(c1, c2, new THREE.Vector3(0, 0, 1), 'π(pz - pz)');
+
+      selectAtom(c1.id);
+    });
+
+    // Preset 3: Acetylene (C2H2) sp with 2 π bonds
+    document.getElementById('preset-sp-c2h2').addEventListener('click', () => {
+      clearAllAtoms();
+      camera.position.set(0, 3, 9);
+      controls.target.set(0, 0, 0);
+
+      const c1 = addAtom({
+        name: 'C1',
+        color: '#334155',
+        radius: 0.42,
+        orbitalType: 'sp',
+        position: new THREE.Vector3(-1.1, 0, 0)
+      });
+
+      const c2 = addAtom({
+        name: 'C2',
+        color: '#334155',
+        radius: 0.42,
+        orbitalType: 'sp',
+        position: new THREE.Vector3(1.1, 0, 0)
+      });
+      // c2 keeps default orientation (0,0,0) so both py and pz orbitals remain in-phase with c1
+
+      addAtom({ name: 'H1', color: '#ffffff', radius: 0.26, orbitalType: 's', position: new THREE.Vector3(-2.6, 0, 0) });
+      addAtom({ name: 'H2', color: '#ffffff', radius: 0.26, orbitalType: 's', position: new THREE.Vector3(2.6, 0, 0) });
+
+      // Create two perpendicular π bonds: one along Z (pz-pz), one along Y (py-py)
+      createPiBridgePair(c1, c2, new THREE.Vector3(0, 0, 1), 'π(pz - pz)');
+      createPiBridgePair(c1, c2, new THREE.Vector3(0, 1, 0), 'π(py - py)');
+
+      selectAtom(c1.id);
+    });
+
+    // Preset 4: Benzene (C6H6) Planar Aromatic Ring with Delocalized π-Cloud
+    document.getElementById('preset-benzene').addEventListener('click', () => {
+      clearAllAtoms();
+      camera.position.set(0, 4.5, 9.5);
+      controls.target.set(0, 0, 0);
+
+      const R_c = 1.95;
+      const R_h = 3.25;
+      const cAtoms = [];
+
+      for (let i = 0; i < 6; i++) {
+        const theta = (i * Math.PI) / 3;
+        const c = addAtom({
+          name: 'C' + (i + 1),
+          color: '#334155',
+          radius: 0.40,
+          orbitalType: 'sp2',
+          rotation: new THREE.Euler(0, 0, theta),
+          position: new THREE.Vector3(Math.cos(theta) * R_c, Math.sin(theta) * R_c, 0)
+        });
+        cAtoms.push(c);
+
+        addAtom({
+          name: 'H' + (i + 1),
+          color: '#ffffff',
+          radius: 0.26,
+          orbitalType: 's',
+          position: new THREE.Vector3(Math.cos(theta) * R_h, Math.sin(theta) * R_h, 0)
+        });
+      }
+
+      // Draw C-C ring bonds
+      for (let i = 0; i < 6; i++) {
+        const next = (i + 1) % 6;
+        drawBondLine(cAtoms[i].position, cAtoms[next].position, 0x64748b);
+      }
+
+      // Continuous Delocalized π-Electron Ring above and below the carbon ring
+      createAromaticDelocalizedRing(new THREE.Vector3(0, 0, 0), R_c, 1.40);
+
+      selectAtom(cAtoms[0].id);
+    });
+
+    // Preset 5: Cyclohexane Chair Conformation (C6H12) - Strain-Free Tetrahedral Ring
+    document.getElementById('preset-cyclohexane-chair').addEventListener('click', () => {
+      clearAllAtoms();
+      camera.position.set(0, 3.8, 8.5);
+      controls.target.set(0, 0, 0);
+
+      const R = 1.65;
+      const cAtoms = [];
+
+      for (let i = 0; i < 6; i++) {
+        const theta = (i * Math.PI) / 3;
+        const y = (i % 2 === 0) ? 0.38 : -0.38;
+        const cPos = new THREE.Vector3(Math.cos(theta) * R, y, Math.sin(theta) * R);
+
+        const c = addAtom({
+          name: 'C' + (i + 1),
+          color: '#334155',
+          radius: 0.40,
+          orbitalType: 'sp3',
+          showArrangement: true, // Display tetrahedral envelopes
+          position: cPos
+        });
+        cAtoms.push(c);
+
+        // 1. Axial Hydrogen (Vertical)
+        const isUp = (y > 0);
+        const hAxPos = new THREE.Vector3(cPos.x, cPos.y + (isUp ? 1.25 : -1.25), cPos.z);
+        addAtom({
+          name: `H${i+1}_ax`,
+          color: '#ffffff',
+          radius: 0.24,
+          orbitalType: 's',
+          position: hAxPos
+        });
+        drawBondLine(cPos, hAxPos, 0x94a3b8);
+
+        // 2. Equatorial Hydrogen (Radial outward around ring equator)
+        const cosT = Math.cos(theta);
+        const sinT = Math.sin(theta);
+        const hEqPos = new THREE.Vector3(
+          cPos.x + cosT * 1.20,
+          cPos.y - (isUp ? 0.35 : -0.35),
+          cPos.z + sinT * 1.20
+        );
+        addAtom({
+          name: `H${i+1}_eq`,
+          color: '#ffffff',
+          radius: 0.24,
+          orbitalType: 's',
+          position: hEqPos
+        });
+        drawBondLine(cPos, hEqPos, 0x94a3b8);
+      }
+
+      // Draw C-C bonds
+      for (let i = 0; i < 6; i++) {
+        const next = (i + 1) % 6;
+        drawBondLine(cAtoms[i].position, cAtoms[next].position, 0x475569);
+      }
+
+      const label = makeTextSprite('Chair Form: Strain-Free (109.5° angles)', '#84cc16');
+      label.position.set(0, 2.3, 0);
+      bridgeGroup.add(label);
+
+      selectAtom(cAtoms[0].id);
+    });
+
+    // Preset 6: Cyclohexane Boat Conformation (C6H12) - Flagpole H...H Steric Clash
+    document.getElementById('preset-cyclohexane-boat').addEventListener('click', () => {
+      clearAllAtoms();
+      camera.position.set(0, 3.8, 8.5);
+      controls.target.set(0, 0, 0);
+
+      // 4 Carbons in flat base: C1, C2, C4, C5 (y = -0.35)
+      // 2 Carbons forming prow & stern: C0, C3 (bent upwards at y = +0.55)
+      const cPositions = [
+        new THREE.Vector3( 1.75,  0.55,  0.00), // C0 (Prow)
+        new THREE.Vector3( 1.15, -0.35,  0.95), // C1
+        new THREE.Vector3(-1.15, -0.35,  0.95), // C2
+        new THREE.Vector3(-1.75,  0.55,  0.00), // C3 (Stern)
+        new THREE.Vector3(-1.15, -0.35, -0.95), // C4
+        new THREE.Vector3( 1.15, -0.35, -0.95)  // C5
+      ];
+
+      const cAtoms = cPositions.map((pos, i) => addAtom({
+        name: 'C' + (i + 1),
+        color: '#334155',
+        radius: 0.40,
+        orbitalType: 'sp3',
+        showArrangement: true,
+        position: pos
+      }));
+
+      // C-C Bonds
+      for (let i = 0; i < 6; i++) {
+        drawBondLine(cPositions[i], cPositions[(i + 1) % 6], 0x475569);
+      }
+
+      // Flagpole Hydrogens on C0 and C3 (pointed inwards towards each other!)
+      const hFlag1Pos = new THREE.Vector3( 0.85, 1.45, 0.00);
+      const hFlag2Pos = new THREE.Vector3(-0.85, 1.45, 0.00);
+
+      addAtom({ name: 'H_flag1', color: '#f87171', radius: 0.26, orbitalType: 's', position: hFlag1Pos });
+      addAtom({ name: 'H_flag2', color: '#f87171', radius: 0.26, orbitalType: 's', position: hFlag2Pos });
+      drawBondLine(cPositions[0], hFlag1Pos, 0xf87171);
+      drawBondLine(cPositions[3], hFlag2Pos, 0xf87171);
+
+      // Dashed red line connecting the two flagpole hydrogens (steric clash!)
+      drawBondLine(hFlag1Pos, hFlag2Pos, 0xef4444, true);
+
+      // Outward hydrogens on C0 and C3
+      const h0_out = new THREE.Vector3( 2.70, 0.85, 0.00);
+      const h3_out = new THREE.Vector3(-2.70, 0.85, 0.00);
+      addAtom({ name: 'H1_out', color: '#ffffff', radius: 0.24, orbitalType: 's', position: h0_out });
+      addAtom({ name: 'H4_out', color: '#ffffff', radius: 0.24, orbitalType: 's', position: h3_out });
+      drawBondLine(cPositions[0], h0_out, 0x94a3b8);
+      drawBondLine(cPositions[3], h3_out, 0x94a3b8);
+
+      // Hydrogens on base carbons C1, C2, C4, C5
+      [
+        { cIdx: 1, pos: new THREE.Vector3( 1.45, -0.65,  1.90) },
+        { cIdx: 1, pos: new THREE.Vector3( 1.45, -1.35,  0.50) },
+        { cIdx: 2, pos: new THREE.Vector3(-1.45, -0.65,  1.90) },
+        { cIdx: 2, pos: new THREE.Vector3(-1.45, -1.35,  0.50) },
+        { cIdx: 4, pos: new THREE.Vector3(-1.45, -0.65, -1.90) },
+        { cIdx: 4, pos: new THREE.Vector3(-1.45, -1.35, -0.50) },
+        { cIdx: 5, pos: new THREE.Vector3( 1.45, -0.65, -1.90) },
+        { cIdx: 5, pos: new THREE.Vector3( 1.45, -1.35, -0.50) }
+      ].forEach((hData, i) => {
+        addAtom({ name: `H_base${i+1}`, color: '#ffffff', radius: 0.24, orbitalType: 's', position: hData.pos });
+        drawBondLine(cPositions[hData.cIdx], hData.pos, 0x94a3b8);
+      });
+
+      const clashLabel = makeTextSprite('⚠️ Flagpole H...H Steric Clash', '#f87171');
+      clashLabel.position.set(0, 1.85, 0);
+      bridgeGroup.add(clashLabel);
+
+      selectAtom(cAtoms[0].id);
+    });
+
+    // Preset 7: Graphene Sheets (Multilayer Honeycomb Lattice)
+    document.getElementById('preset-graphene').addEventListener('click', () => {
+      clearAllAtoms();
+      camera.position.set(0, 5.5, 12.0);
+      controls.target.set(0, 0, 0);
+
+      const r = 1.35;
+      const dx = r * Math.sqrt(3);
+
+      const template = [
+        new THREE.Vector3(0, 0,  r),
+        new THREE.Vector3(0, 0, -r),
+        new THREE.Vector3( r * Math.cos(Math.PI/6), 0,  r * 0.5),
+        new THREE.Vector3(-r * Math.cos(Math.PI/6), 0,  r * 0.5),
+        new THREE.Vector3( r * Math.cos(Math.PI/6), 0, -r * 0.5),
+        new THREE.Vector3(-r * Math.cos(Math.PI/6), 0, -r * 0.5),
+        new THREE.Vector3(dx, 0,  r),
+        new THREE.Vector3(dx, 0, -r),
+        new THREE.Vector3(dx + r * Math.cos(Math.PI/6), 0,  r * 0.5),
+        new THREE.Vector3(dx + r * Math.cos(Math.PI/6), 0, -r * 0.5),
+        new THREE.Vector3(-dx, 0,  r),
+        new THREE.Vector3(-dx, 0, -r),
+        new THREE.Vector3(-dx - r * Math.cos(Math.PI/6), 0,  r * 0.5),
+        new THREE.Vector3(-dx - r * Math.cos(Math.PI/6), 0, -r * 0.5)
+      ];
+
+      const layersY = [2.0, 0.0, -2.0];
+      const sheetAtoms = [];
+
+      layersY.forEach((yVal, lIdx) => {
+        const layer = [];
+        template.forEach((pt, pIdx) => {
+          const atom = addAtom({
+            name: `C_L${lIdx+1}_${pIdx+1}`,
+            color: '#334155',
+            radius: 0.30,
+            orbitalType: 'none',
+            position: new THREE.Vector3(pt.x, yVal, pt.z)
+          });
+          layer.push(atom);
+        });
+        sheetAtoms.push(layer);
+
+        for (let i = 0; i < layer.length; i++) {
+          for (let j = i + 1; j < layer.length; j++) {
+            const dist = layer[i].position.distanceTo(layer[j].position);
+            if (dist > 0.5 && dist < r * 1.08) {
+              drawBondLine(layer[i].position, layer[j].position, 0x64748b);
+            }
+          }
+        }
+      });
+
+      // Vertical dashed interlayer coupling lines
+      for (let pIdx = 0; pIdx < template.length; pIdx++) {
+        drawBondLine(sheetAtoms[0][pIdx].position, sheetAtoms[1][pIdx].position, 0x94a3b8, true);
+        drawBondLine(sheetAtoms[1][pIdx].position, sheetAtoms[2][pIdx].position, 0x94a3b8, true);
+      }
+
+      const label = makeTextSprite('Multilayer Graphene: sp² Honeycomb & vdW Coupling', '#a855f7');
+      label.position.set(0, 3.4, 0);
+      bridgeGroup.add(label);
+
+      selectAtom(sheetAtoms[1][0].id);
+    });
+
+    // Preset 8: Phosphorus Pentachloride (PCl5) sp3d Trigonal Bipyramidal
+    document.getElementById('preset-sp3d-pcl5').addEventListener('click', () => {
+      clearAllAtoms();
+      camera.position.set(0, 3, 9.5);
+      controls.target.set(0, 0, 0);
+
+      const p = addAtom({
+        name: 'P',
+        color: '#f97316',
+        radius: 0.48,
+        orbitalType: 'sp3d',
+        showArrangement: true,
+        position: new THREE.Vector3(0, 0, 0)
+      });
+
+      const eqDist = 2.1;
+      const axDist = 2.2;
+      [0, (2*Math.PI)/3, (4*Math.PI)/3].forEach((ang, i) => {
+        addAtom({
+          name: 'Cl_eq' + (i + 1),
+          color: '#10b981',
+          radius: 0.36,
+          orbitalType: 'none',
+          position: new THREE.Vector3(Math.cos(ang) * eqDist, Math.sin(ang) * eqDist, 0)
+        });
+      });
+      addAtom({ name: 'Cl_ax1', color: '#10b981', radius: 0.36, orbitalType: 'none', position: new THREE.Vector3(0, 0, axDist) });
+      addAtom({ name: 'Cl_ax2', color: '#10b981', radius: 0.36, orbitalType: 'none', position: new THREE.Vector3(0, 0, -axDist) });
+
+      selectAtom(p.id);
+    });
+
+    // Preset 9: Sulfur Hexafluoride (SF6) sp3d2 Octahedral
+    document.getElementById('preset-sp3d2-sf6').addEventListener('click', () => {
+      clearAllAtoms();
+      camera.position.set(0, 3, 9.5);
+      controls.target.set(0, 0, 0);
+
+      const s = addAtom({
+        name: 'S',
+        color: '#eab308',
+        radius: 0.48,
+        orbitalType: 'sp3d2',
+        showArrangement: true,
+        position: new THREE.Vector3(0, 0, 0)
+      });
+
+      const fDist = 2.1;
+      const fPositions = [
+        new THREE.Vector3( fDist, 0, 0),
+        new THREE.Vector3(-fDist, 0, 0),
+        new THREE.Vector3(0,  fDist, 0),
+        new THREE.Vector3(0, -fDist, 0),
+        new THREE.Vector3(0, 0,  fDist),
+        new THREE.Vector3(0, 0, -fDist)
+      ];
+      fPositions.forEach((pos, idx) => {
+        addAtom({
+          name: 'F' + (idx + 1),
+          color: '#06b6d4',
+          radius: 0.32,
+          orbitalType: 'none',
+          position: pos
+        });
+      });
+
+      selectAtom(s.id);
+    });
+
+    // Preset 10: Water (H2O) sp3 Bent with 2 Lone Pairs
+    document.getElementById('preset-h2o').addEventListener('click', () => {
+      clearAllAtoms();
+      camera.position.set(0, 1.5, 7.5);
+      controls.target.set(0, 0, 0);
+
+      const o = addAtom({
+        name: 'O',
+        color: '#ef4444',
+        radius: 0.44,
+        orbitalType: 'sp3',
+        position: new THREE.Vector3(0, 0, 0)
+      });
+
+      const bondDist = 1.95;
+      const vH1 = new THREE.Vector3(-1, -1,  1).normalize();
+      const vH2 = new THREE.Vector3( 1, -1, -1).normalize();
+
+      addAtom({ name: 'H1', color: '#ffffff', radius: 0.26, orbitalType: 's', position: vH1.clone().multiplyScalar(bondDist) });
+      addAtom({ name: 'H2', color: '#ffffff', radius: 0.26, orbitalType: 's', position: vH2.clone().multiplyScalar(bondDist) });
+
+      selectAtom(o.id);
+    });
+
+    // Preset 11: All 5 d-orbitals side-by-side with textbook nodal surfaces
+    document.getElementById('preset-d-orbitals').addEventListener('click', () => {
+      clearAllAtoms();
+      camera.position.set(0, 4.2, 14.5);
+      controls.target.set(0, 0, 0);
+
+      const spacing = 3.6;
+      const dOrbitalsData = [
+        { name: '3d_xy', type: 'dxy', x: -2 * spacing },
+        { name: '3d_xz', type: 'dxz', x: -1 * spacing },
+        { name: '3d_yz', type: 'dyz', x: 0 },
+        { name: '3d_x2y2', type: 'dx2y2', x: 1 * spacing },
+        { name: '3d_z2', type: 'dz2', x: 2 * spacing }
+      ];
+
+      const createdAtoms = [];
+      dOrbitalsData.forEach(data => {
+        const atom = addAtom({
+          name: data.name,
+          color: '#475569',
+          radius: 0.38,
+          orbitalType: data.type,
+          showNodalPlanes: true,
+          position: new THREE.Vector3(data.x, 0, 0)
+        });
+        createdAtoms.push(atom);
+      });
+
+      selectAtom(createdAtoms[2].id);
+    });
+
+    /* =========================================================================
+       Quick Build Helpers: Lobe Detection & Intelligent Atom Attachment
+       ========================================================================= */
+
+    function getAtomFromMesh(mesh) {
+      let curr = mesh;
+      while (curr) {
+        if (curr.userData && curr.userData.atomInstance) {
+          return curr.userData.atomInstance;
+        }
+        curr = curr.parent;
+      }
+      return null;
+    }
+
+    function getAllLobeMeshes() {
+      const lobes = [];
+      state.atoms.forEach(atom => {
+        atom.orbitalGroup.traverse(child => {
+          if (child.isMesh && child.userData && child.userData.isLobe) {
+            lobes.push(child);
+          }
+        });
+      });
+      return lobes;
+    }
+
+    const ELEMENT_DEFAULTS = {
+      H: { color: '#ffffff', radius: 0.26, defaultOrbital: 's' },
+      C: { color: '#334155', radius: 0.42, defaultOrbital: 'sp3' },
+      O: { color: '#ef4444', radius: 0.44, defaultOrbital: 'sp3' },
+      N: { color: '#3b82f6', radius: 0.40, defaultOrbital: 'sp3' },
+      S: { color: '#eab308', radius: 0.48, defaultOrbital: 'sp3d2' },
+      P: { color: '#f97316', radius: 0.48, defaultOrbital: 'sp3d' },
+      F: { color: '#06b6d4', radius: 0.32, defaultOrbital: 'pz' },
+      Cl: { color: '#10b981', radius: 0.36, defaultOrbital: 'pz' }
+    };
+
+    /**
+     * Calculates the world attachment position and auto-rotation for a new atom
+     * bonded to a clicked orbital lobe.
+     */
+    function calculateAttachment(hitLobeMesh) {
+      const parentAtom = getAtomFromMesh(hitLobeMesh);
+      if (!parentAtom || !hitLobeMesh.userData.localDir) return null;
+
+      // Transform lobe local direction vector to world coordinates
+      const localDir = hitLobeMesh.userData.localDir.clone();
+      const worldDir = localDir.clone().transformDirection(parentAtom.group.matrixWorld).normalize();
+
+      const childElem = state.quickBuildElem || 'H';
+      const childOrbital = state.quickBuildOrbital || 's';
+      let bondDist = 2.40;
+      if (childElem === 'H') bondDist = 1.95;
+      else if (childElem === 'F') bondDist = 2.05;
+      else if (childElem === 'S' || childElem === 'P') bondDist = 2.55;
+
+      const attachPos = parentAtom.position.clone().add(worldDir.clone().multiplyScalar(bondDist));
+
+      // Calculate auto-rotation for hybrid child orbitals so primary lobe points directly towards parent (-worldDir)
+      let childRotation = new THREE.Euler(0, 0, 0, 'XYZ');
+      if (childOrbital !== 's') {
+        let u0 = new THREE.Vector3(1, 0, 0); // Default for sp & sp2
+        if (childOrbital === 'sp3') {
+          u0 = new THREE.Vector3(1, 1, 1).normalize();
+        } else if (childOrbital === 'dz2' || childOrbital === 'pz' || childOrbital === 'p' || childOrbital === 'sp3d' || childOrbital === 'sp3d2') {
+          u0 = new THREE.Vector3(0, 0, 1);
+        }
+
+        const targetDir = worldDir.clone().negate().normalize();
+        const quat = new THREE.Quaternion().setFromUnitVectors(u0, targetDir);
+        childRotation = new THREE.Euler().setFromQuaternion(quat, 'XYZ');
+      }
+
+      return {
+        parentAtom,
+        worldDir,
+        attachPos,
+        childRotation,
+        childElem,
+        childOrbital
+      };
+    }
+
+    function findHoveredLobe() {
+      const lobeMeshes = getAllLobeMeshes();
+      if (lobeMeshes.length === 0) return null;
+      const intersects = raycaster.intersectObjects(lobeMeshes, false);
+      if (intersects.length > 0) {
+        return intersects[0];
+      }
+      return null;
+    }
+
+    function attachAtomAtLobe(hitLobeMesh) {
+      const attachInfo = calculateAttachment(hitLobeMesh);
+      if (!attachInfo) return null;
+
+      const { attachPos, childRotation, childElem, childOrbital } = attachInfo;
+      const elemData = ELEMENT_DEFAULTS[childElem] || { color: '#64748b', radius: 0.40 };
+
+      const newAtom = addAtom({
+        name: childElem + (state.atoms.length + 1),
+        element: childElem,
+        color: elemData.color,
+        radius: elemData.radius,
+        orbitalType: childOrbital,
+        position: attachPos,
+        rotation: childRotation
+      });
+
+      selectAtom(newAtom.id);
+      return newAtom;
+    }
+
+    /* =========================================================================
+       Mouse & Box Selection Interaction Handling
+       ========================================================================= */
+    const marqueeEl = document.getElementById('selection-marquee');
+    let isMouseDown = false;
+    let isBoxSelecting = false;
+    let startScreenPos = { x: 0, y: 0 };
+    let pointerDownTime = 0;
+
+    const getCanvasRelativeCoords = (e) => {
+      const rect = renderer.domElement.getBoundingClientRect();
+      return {
+        x: e.clientX - rect.left,
+        y: e.clientY - rect.top,
+        clientX: e.clientX,
+        clientY: e.clientY
+      };
+    };
+
+    // Hover Preview for Quick Build Mode
+    renderer.domElement.addEventListener('pointermove', (e) => {
+      if (isMouseDown) return;
+
+      const rect = renderer.domElement.getBoundingClientRect();
+      mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+      mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+      raycaster.setFromCamera(mouse, camera);
+
+      if (state.mode === 'build') {
+        const hitLobe = findHoveredLobe();
+        if (hitLobe) {
+          const parentAtom = getAtomFromMesh(hitLobe.object);
+          const distFromCenter = parentAtom ? hitLobe.point.distanceTo(parentAtom.position) : 0;
+          if (parentAtom && distFromCenter >= parentAtom.radius * 0.85) {
+            const attachInfo = calculateAttachment(hitLobe.object);
+            if (attachInfo) {
+              quickBuildPreview.position.copy(attachInfo.attachPos);
+              quickBuildPreview.visible = true;
+
+              const linePts = [parentAtom.position.clone(), attachInfo.attachPos.clone()];
+              previewLine.geometry.dispose();
+              previewLine.geometry = new THREE.BufferGeometry().setFromPoints(linePts);
+              previewLine.computeLineDistances();
+              previewLine.visible = true;
+
+              renderer.domElement.style.cursor = 'crosshair';
+              return;
+            }
+          }
+        }
+        quickBuildPreview.visible = false;
+        previewLine.visible = false;
+        renderer.domElement.style.cursor = 'default';
+      }
+    });
+
+    renderer.domElement.addEventListener('pointerleave', () => {
+      quickBuildPreview.visible = false;
+      previewLine.visible = false;
+    });
+
+    renderer.domElement.addEventListener('pointerdown', (e) => {
+      // Only handle primary left button for selection / build
+      if (e.button !== 0) return;
+
+      isMouseDown = true;
+      pointerDownTime = performance.now();
+      const coords = getCanvasRelativeCoords(e);
+      startScreenPos = coords;
+
+      // Active box select if in box mode OR holding Shift
+      if (state.mode === 'box' || e.shiftKey) {
+        isBoxSelecting = true;
+        controls.enabled = false;
+        marqueeEl.style.left = coords.x + 'px';
+        marqueeEl.style.top = coords.y + 'px';
+        marqueeEl.style.width = '0px';
+        marqueeEl.style.height = '0px';
+        marqueeEl.style.display = 'block';
+      }
+    });
+
+    window.addEventListener('pointermove', (e) => {
+      if (!isMouseDown) return;
+
+      if (isBoxSelecting) {
+        const coords = getCanvasRelativeCoords(e);
+        const minX = Math.min(startScreenPos.x, coords.x);
+        const minY = Math.min(startScreenPos.y, coords.y);
+        const width = Math.abs(coords.x - startScreenPos.x);
+        const height = Math.abs(coords.y - startScreenPos.y);
+
+        marqueeEl.style.left = minX + 'px';
+        marqueeEl.style.top = minY + 'px';
+        marqueeEl.style.width = width + 'px';
+        marqueeEl.style.height = height + 'px';
+      }
+    });
+
+    let lastPointerUpTime = 0;
+    let lastPointerUpPos = { x: 0, y: 0 };
+
+    window.addEventListener('pointerup', (e) => {
+      if (!isMouseDown) return;
+      isMouseDown = false;
+
+      const duration = performance.now() - pointerDownTime;
+      const coords = getCanvasRelativeCoords(e);
+      const dragDist = Math.hypot(coords.x - startScreenPos.x, coords.y - startScreenPos.y);
+      const isCtrl = e.ctrlKey || e.metaKey;
+
+      // Always reset marquee box
+      isBoxSelecting = false;
+      marqueeEl.style.display = 'none';
+      if (state.mode === 'orbit' || state.mode === 'build') {
+        controls.enabled = true;
+      }
+
+      if (dragDist > 6) {
+        // Multi-select atoms inside marquee box (Shift + Drag)
+        const rect = renderer.domElement.getBoundingClientRect();
+        const minX = Math.min(startScreenPos.x, coords.x);
+        const maxX = Math.max(startScreenPos.x, coords.x);
+        const minY = Math.min(startScreenPos.y, coords.y);
+        const maxY = Math.max(startScreenPos.y, coords.y);
+
+        if (!isCtrl) {
+          state.selectedIds.clear();
+        }
+
+        state.atoms.forEach(atom => {
+          // Project 3D atom position to 2D screen space
+          const projected = atom.position.clone().project(camera);
+          const screenX = ((projected.x + 1) * rect.width) / 2;
+          const screenY = ((-projected.y + 1) * rect.height) / 2;
+
+          if (projected.z < 1 && screenX >= minX && screenX <= maxX && screenY >= minY && screenY <= maxY) {
+            state.selectedIds.add(atom.id);
+          }
+        });
+
+        state.atoms.forEach(atom => atom.setSelected(state.selectedIds.has(atom.id)));
+        updateUI();
+        return;
+      }
+
+      if (duration < 380) {
+        // Double-click detection for rapid consecutive clicks
+        const now = performance.now();
+        const timeSinceLast = now - lastPointerUpTime;
+        const distFromLast = Math.hypot(coords.x - lastPointerUpPos.x, coords.y - lastPointerUpPos.y);
+        const isDblClick = (timeSinceLast < 400 && distFromLast < 14);
+
+        lastPointerUpTime = now;
+        lastPointerUpPos = { x: coords.x, y: coords.y };
+
+        const rect = renderer.domElement.getBoundingClientRect();
+        mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+        mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+        raycaster.setFromCamera(mouse, camera);
+
+        // 1. Raycast atom nucleus meshes
+        const nucleusMeshes = state.atoms.map(a => a.nucleusMesh);
+        const nucleusHits = raycaster.intersectObjects(nucleusMeshes, false);
+        let hitAtom = null;
+
+        if (nucleusHits.length > 0) {
+          hitAtom = state.atoms.find(a => a.nucleusMesh === nucleusHits[0].object);
+        } else {
+          // Check orbital lobes
+          const hitLobe = findHoveredLobe();
+          if (hitLobe) {
+            hitAtom = getAtomFromMesh(hitLobe.object);
+          }
+        }
+
+        // --- SHIFT + DOUBLE CLICK: Select all atoms of same type (e.g. all H, all C) ---
+        if (isDblClick && e.shiftKey && hitAtom) {
+          selectAtomsByType(hitAtom, isCtrl);
+          return;
+        }
+
+        // --- DOUBLE CLICK WITHOUT SHIFT: Focus camera on atom ---
+        if (isDblClick && !e.shiftKey && hitAtom) {
+          controls.target.copy(hitAtom.position);
+          controls.update();
+          showToast(`Focused camera on ${hitAtom.name}`, '🔍');
+          return;
+        }
+
+        // Quick Build attachment when clicking lobe in build mode
+        if (state.mode === 'build' && !isDblClick) {
+          const hitLobe = findHoveredLobe();
+          if (hitLobe) {
+            const parentAtom = getAtomFromMesh(hitLobe.object);
+            const distFromCenter = parentAtom ? hitLobe.point.distanceTo(parentAtom.position) : 0;
+            if (parentAtom && distFromCenter >= parentAtom.radius * 0.85) {
+              attachAtomAtLobe(hitLobe.object);
+              quickBuildPreview.visible = false;
+              previewLine.visible = false;
+              return;
+            }
+          }
+        }
+
+        // Single Click atom selection
+        if (hitAtom) {
+          if (isCtrl) {
+            // Toggle atom in/out of selection
+            if (state.selectedIds.has(hitAtom.id)) {
+              state.selectedIds.delete(hitAtom.id);
+            } else {
+              state.selectedIds.add(hitAtom.id);
+            }
+            state.atoms.forEach(atom => atom.setSelected(state.selectedIds.has(atom.id)));
+            updateUI();
+          } else {
+            // Single Left Click: select this atom
+            selectAtom(hitAtom.id, false);
+          }
+          return;
+        }
+
+        // Clicked empty space: deselect (unless Ctrl is held)
+        if (!isCtrl) {
+          selectAtom(null);
+        }
+      }
+    });
+
+    // Native DOM double-click handler (ensures 100% cross-platform coverage)
+    renderer.domElement.addEventListener('dblclick', (e) => {
+      if (performance.now() - lastTypeSelectionTime < 380) return; // Handled in pointerup
+
+      const rect = renderer.domElement.getBoundingClientRect();
+      mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+      mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+      raycaster.setFromCamera(mouse, camera);
+
+      const nucleusMeshes = state.atoms.map(a => a.nucleusMesh);
+      const nucleusHits = raycaster.intersectObjects(nucleusMeshes, false);
+      let hitAtom = null;
+
+      if (nucleusHits.length > 0) {
+        hitAtom = state.atoms.find(a => a.nucleusMesh === nucleusHits[0].object);
+      } else {
+        const hitLobe = findHoveredLobe();
+        if (hitLobe) hitAtom = getAtomFromMesh(hitLobe.object);
+      }
+
+      if (hitAtom) {
+        if (e.shiftKey) {
+          selectAtomsByType(hitAtom, e.ctrlKey || e.metaKey);
+        } else {
+          controls.target.copy(hitAtom.position);
+          controls.update();
+          showToast(`Focused camera on ${hitAtom.name}`, '🔍');
+        }
+      } else if (!e.shiftKey) {
+        controls.target.set(0, 0, 0);
+        controls.update();
+      }
+    });
+
+    // Window Resize Handler
+    window.addEventListener('resize', () => {
+      const w = container.clientWidth;
+      const h = container.clientHeight;
+      camera.aspect = w / h;
+      camera.updateProjectionMatrix();
+      renderer.setSize(w, h);
+    });
+
+    /* =========================================================================
+       Animation Render Loop
+       ========================================================================= */
+    const clock = new THREE.Clock();
+
+    function animate() {
+      requestAnimationFrame(animate);
+
+      const elapsedTime = clock.getElapsedTime();
+
+      // Make selection rings always face the camera billboard-style
+      state.atoms.forEach(atom => {
+        if (atom.selectionRing.visible) {
+          atom.selectionRing.quaternion.copy(camera.quaternion);
+        }
+      });
+
+      controls.update();
+      renderer.render(scene, camera);
+    }
+
+    // Initialize Default State: Atom with no orbital showing at first
+    addAtom({
+      name: 'C1',
+      color: '#334155',
+      radius: 0.42,
+      orbitalType: 'none', // Default no orbital at first
+      position: new THREE.Vector3(0, 0, 0)
+    });
+
+    // Set initial interaction mode to Orbit
+    setInteractionMode('orbit');
+
+    // Support URL query parameters for demos/presets (e.g. ?preset=c2h4, ?preset=benzene, ?preset=antibonding)
+    try {
+      const urlParams = new URLSearchParams(window.location.search);
+      const presetParam = urlParams.get('preset') || urlParams.get('demo');
+      if (presetParam) {
+        if (presetParam === 'c2h4' || presetParam === 'sp2-c2h4') {
+          document.getElementById('preset-sp2-c2h4')?.click();
+        } else if (presetParam === 'c2h2' || presetParam === 'sp-c2h2') {
+          document.getElementById('preset-sp-c2h2')?.click();
+        } else if (presetParam === 'benzene') {
+          document.getElementById('preset-benzene')?.click();
+        } else if (presetParam === 'ch4' || presetParam === 'sp3-ch4') {
+          document.getElementById('preset-sp3-ch4')?.click();
+        } else if (presetParam === 'd-orbitals' || presetParam === 'd') {
+          document.getElementById('preset-d-orbitals')?.click();
+        } else if (presetParam === 'antibonding') {
+          document.getElementById('preset-sp2-c2h4')?.click();
+          clearAllBridges();
+          const c2 = state.atoms.find(a => a.name === 'C2');
+          if (c2) {
+            c2.rotation.x = Math.PI;
+            c2.group.rotation.copy(c2.rotation);
+          }
+          bridgeSelectedOrbitals();
+        }
+      }
+
+      const modeParam = urlParams.get('mode');
+      if (modeParam) {
+        setInteractionMode(modeParam);
+      }
+    } catch(err) {
+      console.warn('URL preset parse error:', err);
+    }
+
+    animate();
+  </script>
+</body>
+</html>
