@@ -9,12 +9,15 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Three.js-r128-0284c7?style=flat-square&logo=three.js" alt="Three.js" />
-  <img src="https://img.shields.io/badge/Vanilla-JavaScript-f59e0b?style=flat-square&logo=javascript" alt="JavaScript" />
-  <img src="https://img.shields.io/badge/HTML5-Single--File-ef4444?style=flat-square&logo=html5" alt="HTML5" />
-  <img src="https://img.shields.io/badge/License-MIT-10b981?style=flat-square" alt="MIT License" />
-  <img src="https://img.shields.io/badge/No_Build_Tools-Zero_Dependencies-6366f1?style=flat-square" alt="No Build Tools" />
+  <a href="https://hmh-215.github.io/Orbital_viewer/"><img src="https://img.shields.io/badge/Live_Demo-GitHub_Pages-22c55e?style=for-the-badge&logo=githubpages&logoColor=white" alt="Live Demo" /></a>
+  <img src="https://img.shields.io/badge/Three.js-r128-0284c7?style=for-the-badge&logo=three.js&logoColor=white" alt="Three.js" />
+  <img src="https://img.shields.io/badge/Vanilla-JavaScript-f59e0b?style=for-the-badge&logo=javascript&logoColor=white" alt="JavaScript" />
+  <img src="https://img.shields.io/badge/HTML5-Single--File-ef4444?style=for-the-badge&logo=html5&logoColor=white" alt="HTML5" />
+  <img src="https://img.shields.io/badge/License-MIT-10b981?style=for-the-badge" alt="MIT License" />
 </p>
+
+> [!TIP]
+> **Experience the app live in your browser:** [**https://hmh-215.github.io/Orbital_viewer/**](https://hmh-215.github.io/Orbital_viewer/) (No installation required!)
 
 ---
 
