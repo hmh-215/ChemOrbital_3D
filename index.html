@@ -768,6 +768,83 @@
       opacity: 1;
       transform: translateX(-50%) translateY(0);
     }
+
+    /* Light Mode Theme */
+    body.theme-light {
+      --bg-dark: #f8fafc;
+      --panel-bg: rgba(255, 255, 255, 0.94);
+      --panel-border: rgba(0, 0, 0, 0.12);
+      --card-bg: rgba(241, 245, 249, 0.90);
+      --card-border: rgba(0, 0, 0, 0.08);
+      --input-bg: #e2e8f0;
+      --text-main: #0f172a;
+      --text-muted: #475569;
+      --text-dim: #64748b;
+    }
+    body.theme-light #sidebar {
+      background: rgba(255, 255, 255, 0.96);
+      border-right-color: rgba(0, 0, 0, 0.12);
+      box-shadow: 4px 0 24px rgba(0, 0, 0, 0.08);
+    }
+    body.theme-light .sidebar-header {
+      background: rgba(248, 250, 252, 0.98);
+      border-bottom-color: rgba(0, 0, 0, 0.1);
+    }
+    body.theme-light .brand-title {
+      color: #0f172a;
+    }
+    body.theme-light .hud-card {
+      background: rgba(255, 255, 255, 0.94);
+      border-color: rgba(0, 0, 0, 0.12);
+      color: #0f172a;
+    }
+    body.theme-light .hud-pill {
+      background: #e2e8f0;
+      color: #0f172a;
+    }
+    body.theme-light .mode-tabs-bar {
+      background: rgba(255, 255, 255, 0.94);
+      border-color: rgba(0, 0, 0, 0.12);
+    }
+    body.theme-light .btn {
+      background: #f1f5f9;
+      border-color: #cbd5e1;
+      color: #0f172a;
+    }
+    body.theme-light .btn:hover {
+      background: #e2e8f0;
+    }
+    body.theme-light .btn-primary {
+      background: #0284c7;
+      color: #ffffff;
+      border-color: #0284c7;
+    }
+    body.theme-light .control-tips {
+      background: rgba(255, 255, 255, 0.94);
+      border-color: rgba(0, 0, 0, 0.12);
+      color: #0f172a;
+    }
+    body.theme-light .tip-key {
+      background: #0284c7;
+      color: #fff;
+    }
+    body.theme-light .orbital-btn {
+      background: rgba(241, 245, 249, 0.88);
+      border-color: #cbd5e1;
+      color: #0f172a;
+    }
+    body.theme-light input[type="text"],
+    body.theme-light input[type="number"],
+    body.theme-light select {
+      background: #f1f5f9;
+      border-color: #cbd5e1;
+      color: #0f172a;
+    }
+    body.theme-light .quick-build-badge {
+      background: rgba(255, 255, 255, 0.94);
+      border-color: rgba(0, 0, 0, 0.12);
+      color: #0f172a;
+    }
   </style>
 </head>
 <body>
@@ -782,7 +859,10 @@
           <div class="brand-subtitle">Gen Chem 1 Orbitals</div>
         </div>
       </div>
-      <button class="btn" id="reset-cam-btn" title="Reset Camera View">⟲ Center</button>
+      <div style="display: flex; gap: 6px; align-items: center;">
+        <button class="btn" id="theme-toggle-btn" title="Toggle Light / Dark Mode" style="font-size: 11px; padding: 5px 8px;">☀️ Light</button>
+        <button class="btn" id="reset-cam-btn" title="Reset Camera View" style="font-size: 11px; padding: 5px 8px;">⟲ Center</button>
+      </div>
     </div>
 
     <div class="sidebar-content">
@@ -1296,6 +1376,7 @@
       <span><span class="kbd">Shift + DblClick</span> Select All of Type</span>
       <span><span class="kbd">Ctrl + Click</span> Multi-Select</span>
       <span><span class="kbd">Shift + Drag</span> Box Select</span>
+      <span><span class="kbd">Del</span> Delete</span>
       <span><span class="kbd">Left Drag</span> Orbit</span>
       <span><span class="kbd">Right Drag</span> Pan</span>
       <span><span class="kbd">Scroll</span> Zoom</span>
@@ -1370,7 +1451,9 @@
       showUnhybridP: true,
       quickBuildElem: 'H',
       quickBuildOrbital: 's',
-      nextId: 1
+      nextId: 1,
+      isLight: false,
+      covalentBonds: []
     };
 
     /* =========================================================================
@@ -1378,6 +1461,7 @@
        ========================================================================= */
     const container = document.getElementById('viewport-container');
     const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x0b0f19);
     scene.fog = new THREE.FogExp2(0x0b0f19, 0.025);
 
     const camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 1000);
@@ -1409,22 +1493,170 @@
     dirLight2.position.set(-10, -5, -10);
     scene.add(dirLight2);
 
-    // Subtle Ground Grid & Coordinate Axes
-    const gridHelper = new THREE.GridHelper(24, 24, 0x1e293b, 0x0f172a);
-    gridHelper.position.y = -4;
-    scene.add(gridHelper);
+    // Dynamic Local Coordinate Axes for Selected Atom (Red = X, Green = Y, Blue = Z)
+    const selectedAtomAxes = new THREE.Group();
+    selectedAtomAxes.name = "selected-atom-axes";
+    selectedAtomAxes.visible = false;
 
-    const axesGroup = new THREE.Group();
-    const axisLength = 2.5;
-    const makeAxisLine = (color, endPoint) => {
-      const mat = new THREE.LineBasicMaterial({ color, opacity: 0.4, transparent: true });
-      const geom = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0,0,0), endPoint]);
-      return new THREE.Line(geom, mat);
-    };
-    axesGroup.add(makeAxisLine(0xef4444, new THREE.Vector3(axisLength, 0, 0))); // X
-    axesGroup.add(makeAxisLine(0x10b981, new THREE.Vector3(0, axisLength, 0))); // Y
-    axesGroup.add(makeAxisLine(0x3b82f6, new THREE.Vector3(0, 0, axisLength))); // Z
-    scene.add(axesGroup);
+    const axisLength = 1.85;
+    const arrowHeadLen = 0.35;
+    const arrowHeadWid = 0.16;
+
+    const arrowX = new THREE.ArrowHelper(new THREE.Vector3(1, 0, 0), new THREE.Vector3(0, 0, 0), axisLength, 0xef4444, arrowHeadLen, arrowHeadWid);
+    const arrowY = new THREE.ArrowHelper(new THREE.Vector3(0, 1, 0), new THREE.Vector3(0, 0, 0), axisLength, 0x10b981, arrowHeadLen, arrowHeadWid);
+    const arrowZ = new THREE.ArrowHelper(new THREE.Vector3(0, 0, 1), new THREE.Vector3(0, 0, 0), axisLength, 0x38bdf8, arrowHeadLen, arrowHeadWid);
+
+    function makeAxisLabelSprite(text, color) {
+      const canvas = document.createElement('canvas');
+      canvas.width = 64;
+      canvas.height = 64;
+      const ctx = canvas.getContext('2d');
+      ctx.font = 'bold 36px "JetBrains Mono", sans-serif';
+      ctx.fillStyle = color;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(text, 32, 32);
+      const texture = new THREE.CanvasTexture(canvas);
+      const mat = new THREE.SpriteMaterial({ map: texture, transparent: true, opacity: 0.95, depthTest: false });
+      const sprite = new THREE.Sprite(mat);
+      sprite.scale.set(0.35, 0.35, 1);
+      return sprite;
+    }
+
+    const labelX = makeAxisLabelSprite('+X', '#ef4444');
+    labelX.position.set(axisLength + 0.22, 0, 0);
+    const labelY = makeAxisLabelSprite('+Y', '#10b981');
+    labelY.position.set(0, axisLength + 0.22, 0);
+    const labelZ = makeAxisLabelSprite('+Z', '#38bdf8');
+    labelZ.position.set(0, 0, axisLength + 0.22);
+
+    selectedAtomAxes.add(arrowX);
+    selectedAtomAxes.add(arrowY);
+    selectedAtomAxes.add(arrowZ);
+    selectedAtomAxes.add(labelX);
+    selectedAtomAxes.add(labelY);
+    selectedAtomAxes.add(labelZ);
+    scene.add(selectedAtomAxes);
+
+    function updateSelectedAtomAxes() {
+      const selected = getPrimarySelectedAtom();
+      if (!selected) {
+        selectedAtomAxes.visible = false;
+        return;
+      }
+      selectedAtomAxes.visible = true;
+      selectedAtomAxes.position.copy(selected.position);
+      selectedAtomAxes.rotation.copy(selected.rotation);
+    }
+
+    // Covalent Bond System (3D cylinders connecting adjacent bonded atoms)
+    const covalentBondsGroup = new THREE.Group();
+    covalentBondsGroup.name = "covalent-bonds-group";
+    scene.add(covalentBondsGroup);
+
+    const cachedBondCylinderGeom = new THREE.CylinderGeometry(0.045, 0.045, 1, 16, 1);
+    cachedBondCylinderGeom.translate(0, 0.5, 0);
+
+    const defaultBondMaterial = new THREE.MeshStandardMaterial({
+      color: 0x94a3b8,
+      roughness: 0.35,
+      metalness: 0.2
+    });
+
+    function addCovalentBond(atomA, atomB, customColor = null) {
+      if (!atomA || !atomB || atomA.id === atomB.id) return null;
+
+      const existing = state.covalentBonds.find(b =>
+        (b.atomAId === atomA.id && b.atomBId === atomB.id) ||
+        (b.atomAId === atomB.id && b.atomBId === atomA.id)
+      );
+      if (existing) return existing;
+
+      const mat = customColor
+        ? new THREE.MeshStandardMaterial({ color: customColor, roughness: 0.35, metalness: 0.2 })
+        : defaultBondMaterial;
+
+      const mesh = new THREE.Mesh(cachedBondCylinderGeom, mat);
+      mesh.castShadow = true;
+      mesh.receiveShadow = true;
+      covalentBondsGroup.add(mesh);
+
+      const bond = {
+        id: 'bond_' + (state.covalentBonds.length + 1),
+        atomAId: atomA.id,
+        atomBId: atomB.id,
+        mesh: mesh
+      };
+      state.covalentBonds.push(bond);
+      updateBondMesh(bond);
+      return bond;
+    }
+
+    function updateBondMesh(bond) {
+      const atomA = state.atoms.find(a => a.id === bond.atomAId);
+      const atomB = state.atoms.find(a => a.id === bond.atomBId);
+      if (!atomA || !atomB) {
+        if (bond.mesh && bond.mesh.parent) bond.mesh.parent.remove(bond.mesh);
+        return false;
+      }
+      const pA = atomA.position;
+      const pB = atomB.position;
+      const dir = pB.clone().sub(pA);
+      const dist = dir.length();
+      if (dist < 0.001) {
+        bond.mesh.visible = false;
+        return true;
+      }
+      bond.mesh.visible = true;
+      bond.mesh.position.copy(pA);
+      bond.mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir.clone().normalize());
+      bond.mesh.scale.set(1, dist, 1);
+      return true;
+    }
+
+    function updateAllCovalentBonds() {
+      state.covalentBonds = state.covalentBonds.filter(bond => updateBondMesh(bond));
+    }
+
+    function removeCovalentBondsForAtom(atomId) {
+      const remaining = [];
+      state.covalentBonds.forEach(bond => {
+        if (bond.atomAId === atomId || bond.atomBId === atomId) {
+          if (bond.mesh && bond.mesh.parent) bond.mesh.parent.remove(bond.mesh);
+        } else {
+          remaining.push(bond);
+        }
+      });
+      state.covalentBonds = remaining;
+    }
+
+    function clearAllCovalentBonds() {
+      while (covalentBondsGroup.children.length > 0) {
+        const obj = covalentBondsGroup.children[0];
+        covalentBondsGroup.remove(obj);
+      }
+      state.covalentBonds = [];
+    }
+
+    function toggleTheme() {
+      state.isLight = !state.isLight;
+      document.body.classList.toggle('theme-light', state.isLight);
+      const themeBtn = document.getElementById('theme-toggle-btn');
+      if (themeBtn) {
+        themeBtn.innerHTML = state.isLight ? '🌙 Dark' : '☀️ Light';
+      }
+      const bgCol = state.isLight ? 0xf8fafc : 0x0b0f19;
+      scene.background.setHex(bgCol);
+      if (scene.fog) scene.fog.color.setHex(bgCol);
+      ambientLight.intensity = state.isLight ? 0.95 : 0.7;
+      dirLight1.intensity = state.isLight ? 0.85 : 0.9;
+      showToast(state.isLight ? 'Switched to Light Mode' : 'Switched to Dark Mode', state.isLight ? '☀️' : '🌙');
+    }
+
+    const themeToggleBtn = document.getElementById('theme-toggle-btn');
+    if (themeToggleBtn) {
+      themeToggleBtn.addEventListener('click', toggleTheme);
+    }
 
     // Raycaster for Atom Clicking & Lobe Quick-Build
     const raycaster = new THREE.Raycaster();
@@ -2182,11 +2414,14 @@
       updatePosition(x, y, z) {
         this.position.set(x, y, z);
         this.group.position.copy(this.position);
+        updateAllCovalentBonds();
+        updateSelectedAtomAxes();
       }
 
       updateRotation(rx, ry, rz) {
         this.rotation.set(rx, ry, rz, 'XYZ');
         this.group.rotation.copy(this.rotation);
+        updateSelectedAtomAxes();
       }
 
       updateRotationDegrees(dx, dy, dz) {
@@ -2247,8 +2482,10 @@
       if (index !== -1) {
         const atom = state.atoms[index];
         atom.destroy();
+        removeCovalentBondsForAtom(atomId);
         state.atoms.splice(index, 1);
         state.selectedIds.delete(atomId);
+        updateSelectedAtomAxes();
         updateUI();
       }
     }
@@ -2265,6 +2502,7 @@
         atom.setSelected(state.selectedIds.has(atom.id));
       });
 
+      updateSelectedAtomAxes();
       updateUI();
     }
 
@@ -2411,6 +2649,7 @@
       });
 
       const selected = getPrimarySelectedAtom();
+      updateSelectedAtomAxes();
 
       if (selected) {
         let avgX = 0, avgY = 0, avgZ = 0;
@@ -2744,6 +2983,7 @@
         }
       });
       updateHudSelectionText();
+      updateSelectedAtomAxes();
     });
 
     rotYSlider.addEventListener('input', (e) => {
@@ -2760,6 +3000,7 @@
         }
       });
       updateHudSelectionText();
+      updateSelectedAtomAxes();
     });
 
     rotZSlider.addEventListener('input', (e) => {
@@ -2776,6 +3017,7 @@
         }
       });
       updateHudSelectionText();
+      updateSelectedAtomAxes();
     });
 
     // Quick Step Rotation per Axis for All Selected Atoms (+90°, -90°, 180°)
@@ -3481,9 +3723,11 @@
 
     function clearAllAtoms() {
       clearAllBridges();
+      clearAllCovalentBonds();
       state.atoms.forEach(a => a.destroy());
       state.atoms = [];
       state.selectedIds.clear();
+      updateSelectedAtomAxes();
       updateUI();
     }
 
@@ -3510,13 +3754,14 @@
       ];
 
       tetraVectors.forEach((v, idx) => {
-        addAtom({
+        const h = addAtom({
           name: 'H' + (idx + 1),
           color: '#ffffff',
           radius: 0.26,
           orbitalType: 's',
           position: v.clone().multiplyScalar(bondDist)
         });
+        addCovalentBond(c, h);
       });
 
       selectAtom(c.id);
@@ -3546,15 +3791,22 @@
       });
       c2.updateRotation(0, 0, Math.PI);
 
+      addCovalentBond(c1, c2);
+
       // 4 Hydrogens with small s-orbitals
       const hDist = 1.95;
       const cos30 = Math.cos(Math.PI / 6);
       const sin30 = Math.sin(Math.PI / 6);
 
-      addAtom({ name: 'H1', color: '#ffffff', radius: 0.26, orbitalType: 's', position: new THREE.Vector3(-1.2 - hDist * cos30, hDist * sin30, 0) });
-      addAtom({ name: 'H2', color: '#ffffff', radius: 0.26, orbitalType: 's', position: new THREE.Vector3(-1.2 - hDist * cos30, -hDist * sin30, 0) });
-      addAtom({ name: 'H3', color: '#ffffff', radius: 0.26, orbitalType: 's', position: new THREE.Vector3(1.2 + hDist * cos30, hDist * sin30, 0) });
-      addAtom({ name: 'H4', color: '#ffffff', radius: 0.26, orbitalType: 's', position: new THREE.Vector3(1.2 + hDist * cos30, -hDist * sin30, 0) });
+      const h1 = addAtom({ name: 'H1', color: '#ffffff', radius: 0.26, orbitalType: 's', position: new THREE.Vector3(-1.2 - hDist * cos30, hDist * sin30, 0) });
+      const h2 = addAtom({ name: 'H2', color: '#ffffff', radius: 0.26, orbitalType: 's', position: new THREE.Vector3(-1.2 - hDist * cos30, -hDist * sin30, 0) });
+      const h3 = addAtom({ name: 'H3', color: '#ffffff', radius: 0.26, orbitalType: 's', position: new THREE.Vector3(1.2 + hDist * cos30, hDist * sin30, 0) });
+      const h4 = addAtom({ name: 'H4', color: '#ffffff', radius: 0.26, orbitalType: 's', position: new THREE.Vector3(1.2 + hDist * cos30, -hDist * sin30, 0) });
+
+      addCovalentBond(c1, h1);
+      addCovalentBond(c1, h2);
+      addCovalentBond(c2, h3);
+      addCovalentBond(c2, h4);
 
       // Automatically construct the textbook π-bond bridge (matching C2H4 figure!)
       createPiBridgePair(c1, c2, new THREE.Vector3(0, 0, 1), 'π(pz - pz)');
@@ -3583,10 +3835,14 @@
         orbitalType: 'sp',
         position: new THREE.Vector3(1.1, 0, 0)
       });
-      // c2 keeps default orientation (0,0,0) so both py and pz orbitals remain in-phase with c1
 
-      addAtom({ name: 'H1', color: '#ffffff', radius: 0.26, orbitalType: 's', position: new THREE.Vector3(-2.6, 0, 0) });
-      addAtom({ name: 'H2', color: '#ffffff', radius: 0.26, orbitalType: 's', position: new THREE.Vector3(2.6, 0, 0) });
+      addCovalentBond(c1, c2);
+
+      const h1 = addAtom({ name: 'H1', color: '#ffffff', radius: 0.26, orbitalType: 's', position: new THREE.Vector3(-2.6, 0, 0) });
+      const h2 = addAtom({ name: 'H2', color: '#ffffff', radius: 0.26, orbitalType: 's', position: new THREE.Vector3(2.6, 0, 0) });
+
+      addCovalentBond(c1, h1);
+      addCovalentBond(c2, h2);
 
       // Create two perpendicular π bonds: one along Z (pz-pz), one along Y (py-py)
       createPiBridgePair(c1, c2, new THREE.Vector3(0, 0, 1), 'π(pz - pz)');
@@ -3626,10 +3882,11 @@
         });
       }
 
-      // Draw C-C ring bonds
+      // Draw C-C ring bonds & C-H bonds
       for (let i = 0; i < 6; i++) {
         const next = (i + 1) % 6;
-        drawBondLine(cAtoms[i].position, cAtoms[next].position, 0x64748b);
+        addCovalentBond(cAtoms[i], cAtoms[next]);
+        addCovalentBond(cAtoms[i], hAtoms[i]);
       }
 
       // Continuous Delocalized π-Electron Ring above and below the carbon ring
@@ -3646,6 +3903,8 @@
 
       const R = 1.65;
       const cAtoms = [];
+      const hAxAtoms = [];
+      const hEqAtoms = [];
 
       for (let i = 0; i < 6; i++) {
         const theta = (i * Math.PI) / 3;
@@ -3665,14 +3924,14 @@
         // 1. Axial Hydrogen (Vertical)
         const isUp = (y > 0);
         const hAxPos = new THREE.Vector3(cPos.x, cPos.y + (isUp ? 1.25 : -1.25), cPos.z);
-        addAtom({
+        const hAx = addAtom({
           name: `H${i+1}_ax`,
           color: '#ffffff',
           radius: 0.24,
           orbitalType: 's',
           position: hAxPos
         });
-        drawBondLine(cPos, hAxPos, 0x94a3b8);
+        hAxAtoms.push(hAx);
 
         // 2. Equatorial Hydrogen (Radial outward around ring equator)
         const cosT = Math.cos(theta);
@@ -3682,20 +3941,22 @@
           cPos.y - (isUp ? 0.35 : -0.35),
           cPos.z + sinT * 1.20
         );
-        addAtom({
+        const hEq = addAtom({
           name: `H${i+1}_eq`,
           color: '#ffffff',
           radius: 0.24,
           orbitalType: 's',
           position: hEqPos
         });
-        drawBondLine(cPos, hEqPos, 0x94a3b8);
+        hEqAtoms.push(hEq);
       }
 
-      // Draw C-C bonds
+      // Draw C-C bonds and C-H bonds
       for (let i = 0; i < 6; i++) {
         const next = (i + 1) % 6;
-        drawBondLine(cAtoms[i].position, cAtoms[next].position, 0x475569);
+        addCovalentBond(cAtoms[i], cAtoms[next]);
+        addCovalentBond(cAtoms[i], hAxAtoms[i]);
+        addCovalentBond(cAtoms[i], hEqAtoms[i]);
       }
 
       const label = makeTextSprite('Chair Form: Strain-Free (109.5° angles)', '#84cc16');
@@ -3733,17 +3994,17 @@
 
       // C-C Bonds
       for (let i = 0; i < 6; i++) {
-        drawBondLine(cPositions[i], cPositions[(i + 1) % 6], 0x475569);
+        addCovalentBond(cAtoms[i], cAtoms[(i + 1) % 6]);
       }
 
       // Flagpole Hydrogens on C0 and C3 (pointed inwards towards each other!)
       const hFlag1Pos = new THREE.Vector3( 0.85, 1.45, 0.00);
       const hFlag2Pos = new THREE.Vector3(-0.85, 1.45, 0.00);
 
-      addAtom({ name: 'H_flag1', color: '#f87171', radius: 0.26, orbitalType: 's', position: hFlag1Pos });
-      addAtom({ name: 'H_flag2', color: '#f87171', radius: 0.26, orbitalType: 's', position: hFlag2Pos });
-      drawBondLine(cPositions[0], hFlag1Pos, 0xf87171);
-      drawBondLine(cPositions[3], hFlag2Pos, 0xf87171);
+      const hFlag1 = addAtom({ name: 'H_flag1', color: '#f87171', radius: 0.26, orbitalType: 's', position: hFlag1Pos });
+      const hFlag2 = addAtom({ name: 'H_flag2', color: '#f87171', radius: 0.26, orbitalType: 's', position: hFlag2Pos });
+      addCovalentBond(cAtoms[0], hFlag1, 0xf87171);
+      addCovalentBond(cAtoms[3], hFlag2, 0xf87171);
 
       // Dashed red line connecting the two flagpole hydrogens (steric clash!)
       drawBondLine(hFlag1Pos, hFlag2Pos, 0xef4444, true);
@@ -3751,10 +4012,10 @@
       // Outward hydrogens on C0 and C3
       const h0_out = new THREE.Vector3( 2.70, 0.85, 0.00);
       const h3_out = new THREE.Vector3(-2.70, 0.85, 0.00);
-      addAtom({ name: 'H1_out', color: '#ffffff', radius: 0.24, orbitalType: 's', position: h0_out });
-      addAtom({ name: 'H4_out', color: '#ffffff', radius: 0.24, orbitalType: 's', position: h3_out });
-      drawBondLine(cPositions[0], h0_out, 0x94a3b8);
-      drawBondLine(cPositions[3], h3_out, 0x94a3b8);
+      const h1_out = addAtom({ name: 'H1_out', color: '#ffffff', radius: 0.24, orbitalType: 's', position: h0_out });
+      const h4_out = addAtom({ name: 'H4_out', color: '#ffffff', radius: 0.24, orbitalType: 's', position: h3_out });
+      addCovalentBond(cAtoms[0], h1_out);
+      addCovalentBond(cAtoms[3], h4_out);
 
       // Hydrogens on base carbons C1, C2, C4, C5
       [
@@ -3767,8 +4028,8 @@
         { cIdx: 5, pos: new THREE.Vector3( 1.45, -0.65, -1.90) },
         { cIdx: 5, pos: new THREE.Vector3( 1.45, -1.35, -0.50) }
       ].forEach((hData, i) => {
-        addAtom({ name: `H_base${i+1}`, color: '#ffffff', radius: 0.24, orbitalType: 's', position: hData.pos });
-        drawBondLine(cPositions[hData.cIdx], hData.pos, 0x94a3b8);
+        const hBase = addAtom({ name: `H_base${i+1}`, color: '#ffffff', radius: 0.24, orbitalType: 's', position: hData.pos });
+        addCovalentBond(cAtoms[hData.cIdx], hBase);
       });
 
       const clashLabel = makeTextSprite('⚠️ Flagpole H...H Steric Clash', '#f87171');
@@ -3825,7 +4086,7 @@
           for (let j = i + 1; j < layer.length; j++) {
             const dist = layer[i].position.distanceTo(layer[j].position);
             if (dist > 0.5 && dist < r * 1.08) {
-              drawBondLine(layer[i].position, layer[j].position, 0x64748b);
+              addCovalentBond(layer[i], layer[j]);
             }
           }
         }
@@ -3862,16 +4123,19 @@
       const eqDist = 2.1;
       const axDist = 2.2;
       [0, (2*Math.PI)/3, (4*Math.PI)/3].forEach((ang, i) => {
-        addAtom({
+        const cl = addAtom({
           name: 'Cl_eq' + (i + 1),
           color: '#10b981',
           radius: 0.36,
           orbitalType: 'none',
           position: new THREE.Vector3(Math.cos(ang) * eqDist, Math.sin(ang) * eqDist, 0)
         });
+        addCovalentBond(p, cl);
       });
-      addAtom({ name: 'Cl_ax1', color: '#10b981', radius: 0.36, orbitalType: 'none', position: new THREE.Vector3(0, 0, axDist) });
-      addAtom({ name: 'Cl_ax2', color: '#10b981', radius: 0.36, orbitalType: 'none', position: new THREE.Vector3(0, 0, -axDist) });
+      const clAx1 = addAtom({ name: 'Cl_ax1', color: '#10b981', radius: 0.36, orbitalType: 'none', position: new THREE.Vector3(0, 0, axDist) });
+      const clAx2 = addAtom({ name: 'Cl_ax2', color: '#10b981', radius: 0.36, orbitalType: 'none', position: new THREE.Vector3(0, 0, -axDist) });
+      addCovalentBond(p, clAx1);
+      addCovalentBond(p, clAx2);
 
       selectAtom(p.id);
     });
@@ -3901,13 +4165,14 @@
         new THREE.Vector3(0, 0, -fDist)
       ];
       fPositions.forEach((pos, idx) => {
-        addAtom({
+        const f = addAtom({
           name: 'F' + (idx + 1),
           color: '#06b6d4',
           radius: 0.32,
           orbitalType: 'none',
           position: pos
         });
+        addCovalentBond(s, f);
       });
 
       selectAtom(s.id);
@@ -3931,8 +4196,10 @@
       const vH1 = new THREE.Vector3(-1, -1,  1).normalize();
       const vH2 = new THREE.Vector3( 1, -1, -1).normalize();
 
-      addAtom({ name: 'H1', color: '#ffffff', radius: 0.26, orbitalType: 's', position: vH1.clone().multiplyScalar(bondDist) });
-      addAtom({ name: 'H2', color: '#ffffff', radius: 0.26, orbitalType: 's', position: vH2.clone().multiplyScalar(bondDist) });
+      const h1 = addAtom({ name: 'H1', color: '#ffffff', radius: 0.26, orbitalType: 's', position: vH1.clone().multiplyScalar(bondDist) });
+      const h2 = addAtom({ name: 'H2', color: '#ffffff', radius: 0.26, orbitalType: 's', position: vH2.clone().multiplyScalar(bondDist) });
+      addCovalentBond(o, h1);
+      addCovalentBond(o, h2);
 
       selectAtom(o.id);
     });
@@ -4027,17 +4294,45 @@
 
       const attachPos = parentAtom.position.clone().add(worldDir.clone().multiplyScalar(bondDist));
 
-      // Calculate auto-rotation for hybrid child orbitals so primary lobe points directly towards parent (-worldDir)
+      // Calculate auto-rotation for child atom
       let childRotation = new THREE.Euler(0, 0, 0, 'XYZ');
-      if (childOrbital !== 's') {
-        let u0 = new THREE.Vector3(1, 0, 0); // Default for sp & sp2
+      const targetDir = worldDir.clone().negate().normalize(); // Point back to parent
+
+      if (childOrbital === 'sp2' || childOrbital === 'sp') {
+        // Requirement 1: Make unhybridized p-orbitals strictly parallel with matching phase signs!
+        const xChild = targetDir.clone(); // Child local +X points towards parent
+
+        // Retrieve parent's unhybridized pz positive lobe direction in world space
+        const parentAxes = getAtomUnhybridAxes(parentAtom);
+        const pzAxis = parentAxes.find(a => a.name === 'pz') || parentAxes[0];
+        const parentPzWorld = pzAxis 
+          ? pzAxis.worldPosDir.clone() 
+          : new THREE.Vector3(0, 0, 1).applyEuler(parentAtom.rotation).normalize();
+
+        // Project parentPzWorld onto the plane orthogonal to xChild
+        let zChild = parentPzWorld.clone().sub(xChild.clone().multiplyScalar(parentPzWorld.dot(xChild)));
+        if (zChild.lengthSq() < 1e-4) {
+          const fallback = Math.abs(xChild.y) < 0.9 ? new THREE.Vector3(0, 1, 0) : new THREE.Vector3(1, 0, 0);
+          zChild = fallback.sub(xChild.clone().multiplyScalar(fallback.dot(xChild))).normalize();
+        } else {
+          zChild.normalize();
+          // Ensure positive lobe points in same direction (+ to +, - to -)
+          if (zChild.dot(parentPzWorld) < 0) {
+            zChild.negate();
+          }
+        }
+
+        const yChild = new THREE.Vector3().crossVectors(zChild, xChild).normalize();
+        const rotMat = new THREE.Matrix4().makeBasis(xChild, yChild, zChild);
+        childRotation = new THREE.Euler().setFromRotationMatrix(rotMat, 'XYZ');
+      } else if (childOrbital !== 's') {
+        let u0 = new THREE.Vector3(1, 0, 0);
         if (childOrbital === 'sp3') {
           u0 = new THREE.Vector3(1, 1, 1).normalize();
         } else if (childOrbital === 'dz2' || childOrbital === 'pz' || childOrbital === 'p' || childOrbital === 'sp3d' || childOrbital === 'sp3d2') {
           u0 = new THREE.Vector3(0, 0, 1);
         }
 
-        const targetDir = worldDir.clone().negate().normalize();
         const quat = new THREE.Quaternion().setFromUnitVectors(u0, targetDir);
         childRotation = new THREE.Euler().setFromQuaternion(quat, 'XYZ');
       }
@@ -4066,7 +4361,7 @@
       const attachInfo = calculateAttachment(hitLobeMesh);
       if (!attachInfo) return null;
 
-      const { attachPos, childRotation, childElem, childOrbital } = attachInfo;
+      const { parentAtom, attachPos, childRotation, childElem, childOrbital } = attachInfo;
       const elemData = ELEMENT_DEFAULTS[childElem] || { color: '#64748b', radius: 0.40 };
 
       const newAtom = addAtom({
@@ -4079,7 +4374,11 @@
         rotation: childRotation
       });
 
+      // Add 3D covalent bond between parent atom and newly attached atom
+      addCovalentBond(parentAtom, newAtom);
+
       selectAtom(newAtom.id);
+      showToast(`Attached ${newAtom.name} with covalent bond`, '🔗');
       return newAtom;
     }
 
@@ -4344,6 +4643,22 @@
       } else if (!e.shiftKey) {
         controls.target.set(0, 0, 0);
         controls.update();
+      }
+    });
+
+    // Keyboard Shortcuts: Delete/Backspace to remove selected atom(s)
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Delete' || e.key === 'Backspace') {
+        const activeTag = document.activeElement ? document.activeElement.tagName.toLowerCase() : '';
+        if (activeTag === 'input' || activeTag === 'textarea' || activeTag === 'select') {
+          return; // Ignore if typing inside text fields
+        }
+        const idsToDelete = Array.from(state.selectedIds);
+        if (idsToDelete.length > 0) {
+          e.preventDefault();
+          idsToDelete.forEach(id => removeAtom(id));
+          showToast(`Deleted ${idsToDelete.length} atom(s)`, '🗑️');
+        }
       }
     });
 
