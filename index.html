@@ -273,6 +273,24 @@
       box-shadow: 0 0 10px rgba(56, 189, 248, 0.3);
     }
 
+    .orb-badge {
+      display: inline-block;
+      font-size: 9px;
+      font-weight: 700;
+      padding: 1px 4px;
+      border-radius: 4px;
+      background: rgba(56, 189, 248, 0.2);
+      color: #38bdf8;
+      margin-left: 3px;
+      letter-spacing: 0.2px;
+      vertical-align: middle;
+    }
+
+    .quick-attach-btn.active .orb-badge {
+      background: rgba(255, 255, 255, 0.25);
+      color: #ffffff;
+    }
+
     /* Form rows */
     .form-row {
       display: flex;
@@ -650,12 +668,15 @@
     body.mode-build #atoms-roster-card {
       display: flex !important;
     }
-    body.mode-build #teaching-presets-card,
-    body.mode-build #multi-select-card {
+    body.mode-build #teaching-presets-card {
+      display: none !important;
+    }
+    body.mode-build:not(.has-multi-selection) #multi-select-card {
       display: none !important;
     }
 
     body.mode-box #multi-select-card,
+    body.has-multi-selection #multi-select-card,
     body.mode-box #atom-inspector,
     body.mode-box #atoms-roster-card {
       display: flex !important;
@@ -986,6 +1007,14 @@
       border-color: #0284c7;
       color: #0284c7 !important;
     }
+    body.theme-light .orb-badge {
+      background: rgba(2, 132, 199, 0.15);
+      color: #0284c7;
+    }
+    body.theme-light .quick-attach-btn.active .orb-badge {
+      background: #0284c7;
+      color: #ffffff;
+    }
     body.theme-light .elem-chip {
       background: #f8fafc;
       border-color: #cbd5e1;
@@ -1124,24 +1153,45 @@
           <button class="btn" id="multi-deselect-all-btn">Deselect All</button>
         </div>
 
+        <!-- Covalent σ-Bonds Section -->
+        <div style="background: rgba(56, 189, 248, 0.08); border: 1px solid rgba(56, 189, 248, 0.25); border-radius: 8px; padding: 10px; display: flex; flex-direction: column; gap: 8px;">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span style="font-size: 11px; font-weight: 700; color: #38bdf8;">🔗 Covalent Bonding (σ-Bonds)</span>
+            <span style="font-size: 10px; color: #38bdf8;" id="multi-bond-count-badge">Connect Atoms</span>
+          </div>
+          <div style="font-size: 10px; color: var(--text-muted); line-height: 1.4;">
+            Form or remove covalent bonds (represented as grey 3D cylinders) between selected atoms:
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
+            <button class="btn btn-primary" id="multi-form-covalent-btn" style="background: #0284c7; color: #fff; font-weight: 600; font-size: 11px;">
+              ➕ Form Bond(s)
+            </button>
+            <button class="btn btn-danger" id="multi-remove-covalent-btn" style="font-size: 11px;">
+              ➖ Remove Bond(s)
+            </button>
+          </div>
+        </div>
+
         <!-- π-Bond & Orbital Bridging (Highlighted) -->
         <div style="background: rgba(132, 204, 22, 0.08); border: 1px solid rgba(132, 204, 22, 0.25); border-radius: 8px; padding: 10px; display: flex; flex-direction: column; gap: 8px;">
           <div style="display: flex; justify-content: space-between; align-items: center;">
             <span style="font-size: 11px; font-weight: 700; color: #84cc16;">⚡ Hybridization & π-Bonding</span>
-            <span style="font-size: 10px; color: #84cc16;">C₂H₄, C₂H₂, Ring</span>
+            <span style="font-size: 10px; color: #84cc16;">C₂H₄, Benzene, NO₂</span>
           </div>
           <div style="font-size: 10px; color: var(--text-muted); line-height: 1.4;">
-            Overlap parallel p-orbitals between selected atoms. In-phase lobes (+ with +, − with −) form a bonding π cloud; opposite phases form an antibonding π* nodal plane:
+            Overlap parallel p-orbitals between adjacent bonded atoms. In-phase lobes (+ with +, − with −) form a bonding π cloud; opposite phases form an antibonding π* nodal plane:
           </div>
-          <div style="display: grid; grid-template-columns: 1fr auto; gap: 6px;">
+          <div style="display: grid; grid-template-columns: 1fr auto auto; gap: 6px;">
             <button class="btn btn-primary" id="bridge-orbitals-btn" style="background: #84cc16; color: #0b0f19; font-weight: 700; font-size: 11px;">
               🔗 Form π-Bond Overlap
             </button>
+            <button class="btn" id="multi-align-p-btn" title="Auto-align unhybridized p-orbitals parallel to bonded partners">🔄 Align p</button>
             <button class="btn" id="clear-bridges-btn" title="Clear all π-bond bridges & nodal planes">🧹 Clear</button>
           </div>
           <div style="font-size: 10px; color: var(--text-muted); line-height: 1.35; background: rgba(0,0,0,0.22); padding: 5px 8px; border-radius: 4px;">
             • <strong style="color: #ef4444;">Red</strong> + <strong style="color: #ef4444;">Red</strong>: <strong>Bonding π</strong> (Continuous cloud)<br>
-            • <strong style="color: #ef4444;">Red</strong> + <strong style="color: #3b82f6;">Blue</strong>: <strong>Antibonding π*</strong> (Vertical Nodal Plane)
+            • <strong style="color: #ef4444;">Red</strong> + <strong style="color: #3b82f6;">Blue</strong>: <strong>Antibonding π*</strong> (Vertical Nodal Plane)<br>
+            • <em>Only directly bonded adjacent atoms form π-bridges (no cross-ring chords)</em>
           </div>
         </div>
 
@@ -1195,17 +1245,23 @@
           Click directly on any orbital lobe in 3D to instantly attach a bonding atom:
         </div>
         <div style="display: flex; flex-direction: column; gap: 6px; margin-top: 6px;">
-          <div style="font-size: 10px; font-weight: 700; color: var(--text-main); text-transform: uppercase; letter-spacing: 0.5px;">Attach on Lobe Click:</div>
-          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px;">
-            <button class="quick-attach-btn active" data-elem="H" data-orbital="s" title="Hydrogen with 1s orbital">⚪ H (1s)</button>
-            <button class="quick-attach-btn" data-elem="C" data-orbital="sp3" title="Carbon with sp³ tetrahedral orbitals">⚫ C (sp³)</button>
-            <button class="quick-attach-btn" data-elem="C" data-orbital="sp2" title="Carbon with sp² planar + pz (auto-aligned)">⚫ C (sp²)</button>
-            <button class="quick-attach-btn" data-elem="C" data-orbital="sp" title="Carbon with sp linear + 2p">⚫ C (sp)</button>
-            <button class="quick-attach-btn" data-elem="O" data-orbital="sp3" title="Oxygen with sp³ bent lone pairs">🔴 O (sp³)</button>
-            <button class="quick-attach-btn" data-elem="N" data-orbital="sp3" title="Nitrogen with sp³ pyramidal">🔵 N (sp³)</button>
-            <button class="quick-attach-btn" data-elem="S" data-orbital="sp3d2" title="Sulfur with sp³d² octahedral">🟡 S (sp³d²)</button>
-            <button class="quick-attach-btn" data-elem="P" data-orbital="sp3d" title="Phosphorus with sp³d trig bipyram">🟠 P (sp³d)</button>
-            <button class="quick-attach-btn" data-elem="F" data-orbital="pz" title="Fluorine with pz orbital">🟢 F (p)</button>
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span style="font-size: 10px; font-weight: 700; color: var(--text-main); text-transform: uppercase; letter-spacing: 0.5px;">Attach on Lobe Click:</span>
+            <span style="font-size: 9px; color: var(--accent-cyan);">Click to select • Click again to cycle ⟳</span>
+          </div>
+          <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px;">
+            <button class="quick-attach-btn active" data-elem="H" title="Hydrogen (H) - 1s orbital">⚪ H <span class="orb-badge">1s</span></button>
+            <button class="quick-attach-btn" data-elem="C" title="Carbon (C) - Click to cycle: sp³ → sp² → sp">⚫ C <span class="orb-badge">sp³</span></button>
+            <button class="quick-attach-btn" data-elem="O" title="Oxygen (O) - Click to cycle: sp³ → sp² → sp">🔴 O <span class="orb-badge">sp³</span></button>
+            <button class="quick-attach-btn" data-elem="N" title="Nitrogen (N) - Click to cycle: sp³ → sp² → sp">🔵 N <span class="orb-badge">sp³</span></button>
+            <button class="quick-attach-btn" data-elem="S" title="Sulfur (S) - Click to cycle: sp³ → sp² → sp³d → sp³d²">🟡 S <span class="orb-badge">sp³d²</span></button>
+            <button class="quick-attach-btn" data-elem="P" title="Phosphorus (P) - Click to cycle: sp³d → sp³">🟠 P <span class="orb-badge">sp³d</span></button>
+            <button class="quick-attach-btn" data-elem="F" title="Fluorine (F) - p orbital">🟢 F <span class="orb-badge">p</span></button>
+            <button class="quick-attach-btn" data-elem="Cl" title="Chlorine (Cl) - p orbital">🟢 Cl <span class="orb-badge">p</span></button>
+          </div>
+          <div id="quick-build-status-bar" style="margin-top: 4px; font-size: 10px; color: var(--text-muted); background: rgba(0,0,0,0.22); padding: 5px 8px; border-radius: 4px; display: flex; justify-content: space-between; align-items: center;">
+            <span>Attaching: <strong id="quick-build-current-text" style="color: #38bdf8;">⚪ H (1s)</strong></span>
+            <span style="font-size: 9px; opacity: 0.8;">Click button to cycle ⟳</span>
           </div>
         </div>
       </div>
@@ -1367,7 +1423,10 @@
               <button class="btn rot-step-btn" data-axis="z" data-deg="-90" style="padding: 3px; font-size: 10px;" title="Rotate -90° around Z">-90°</button>
               <button class="btn rot-step-btn" data-axis="z" data-deg="180" style="padding: 3px; font-size: 10px;" title="Rotate 180° around Z">180°</button>
             </div>
-            <button class="btn" id="rot-quick-reset" style="padding: 4px; font-size: 10px; margin-top: 2px;" title="Reset Rotation to 0°">Reset All Rotation (0°)</button>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px; margin-top: 2px;">
+              <button class="btn" id="rot-quick-reset" style="padding: 4px; font-size: 10px;" title="Reset Rotation to 0°">Reset (0°)</button>
+              <button class="btn" id="single-align-p-btn" style="padding: 4px; font-size: 10px; border-color: #84cc16; color: #84cc16;" title="Auto-align unhybridized p-orbital parallel to bonded neighbor(s)">🔄 Align p</button>
+            </div>
           </div>
 
           <div class="slider-row">
@@ -1853,6 +1912,140 @@
         covalentBondsGroup.remove(obj);
       }
       state.covalentBonds = [];
+    }
+
+    function hasCovalentBond(atomA, atomB) {
+      if (!atomA || !atomB) return false;
+      return state.covalentBonds.some(b =>
+        (b.atomAId === atomA.id && b.atomBId === atomB.id) ||
+        (b.atomAId === atomB.id && b.atomBId === atomA.id)
+      );
+    }
+
+    function removeCovalentBondBetween(atomAId, atomBId) {
+      const remaining = [];
+      let removed = 0;
+      state.covalentBonds.forEach(bond => {
+        if ((bond.atomAId === atomAId && bond.atomBId === atomBId) ||
+            (bond.atomAId === atomBId && bond.atomBId === atomAId)) {
+          if (bond.mesh && bond.mesh.parent) bond.mesh.parent.remove(bond.mesh);
+          removed++;
+        } else {
+          remaining.push(bond);
+        }
+      });
+      state.covalentBonds = remaining;
+      return removed;
+    }
+
+    function getBondedNeighbors(atom) {
+      if (!atom) return [];
+      const neighbors = [];
+      state.covalentBonds.forEach(b => {
+        if (b.atomAId === atom.id) {
+          const neighbor = state.atoms.find(a => a.id === b.atomBId);
+          if (neighbor) neighbors.push({ neighbor, bond: b });
+        } else if (b.atomBId === atom.id) {
+          const neighbor = state.atoms.find(a => a.id === b.atomAId);
+          if (neighbor) neighbors.push({ neighbor, bond: b });
+        }
+      });
+      return neighbors;
+    }
+
+    /**
+     * Auto-aligns unhybridized p-orbitals of an atom parallel to its bonded neighbor(s)
+     * with matching phase signs (+ facing +, - facing -).
+     */
+    function alignAtomWithBondedNeighbors(atom) {
+      if (!atom || (atom.orbitalType !== 'sp2' && atom.orbitalType !== 'sp')) return false;
+
+      const neighbors = getBondedNeighbors(atom);
+      if (neighbors.length === 0) return false;
+
+      if (neighbors.length === 1) {
+        // Single neighbor (terminal atom, e.g. Oxygen in NO2, or Carbon in C2H4/C2H2)
+        const neighbor = neighbors[0].neighbor;
+        const xLocal = neighbor.position.clone().sub(atom.position).normalize();
+
+        // Target p-axis from neighbor
+        let pTarget = null;
+        const neighborAxes = getAtomUnhybridAxes(neighbor);
+        if (neighborAxes.length > 0) {
+          pTarget = neighborAxes[0].worldPosDir.clone();
+        } else {
+          // If neighbor has no p-orbital, check if neighbor has other bonds defining a plane
+          const secondNeighbors = getBondedNeighbors(neighbor).filter(n => n.neighbor.id !== atom.id);
+          if (secondNeighbors.length > 0) {
+            const v1 = atom.position.clone().sub(neighbor.position).normalize();
+            const v2 = secondNeighbors[0].neighbor.position.clone().sub(neighbor.position).normalize();
+            const normal = new THREE.Vector3().crossVectors(v1, v2);
+            if (normal.lengthSq() > 1e-4) {
+              pTarget = normal.normalize();
+            }
+          }
+        }
+
+        if (!pTarget) {
+          pTarget = Math.abs(xLocal.z) < 0.9 ? new THREE.Vector3(0, 0, 1) : new THREE.Vector3(0, 1, 0);
+        }
+
+        // Project pTarget onto plane perpendicular to xLocal
+        let zLocal = pTarget.clone().sub(xLocal.clone().multiplyScalar(pTarget.dot(xLocal)));
+        if (zLocal.lengthSq() < 1e-4) {
+          const fallback = Math.abs(xLocal.y) < 0.9 ? new THREE.Vector3(0, 1, 0) : new THREE.Vector3(0, 0, 1);
+          zLocal = fallback.sub(xLocal.clone().multiplyScalar(fallback.dot(xLocal))).normalize();
+        } else {
+          zLocal.normalize();
+          if (zLocal.dot(pTarget) < 0) {
+            zLocal.negate();
+          }
+        }
+
+        const yLocal = new THREE.Vector3().crossVectors(zLocal, xLocal).normalize();
+        zLocal = new THREE.Vector3().crossVectors(xLocal, yLocal).normalize();
+
+        const rotMat = new THREE.Matrix4().makeBasis(xLocal, yLocal, zLocal);
+        atom.rotation.setFromRotationMatrix(rotMat, 'XYZ');
+        atom.group.rotation.copy(atom.rotation);
+        return true;
+      } else {
+        // 2 or more neighbors (central atom, e.g. Nitrogen in NO2, or Carbon in Benzene/Ethylene)
+        const n1 = neighbors[0].neighbor;
+        const n2 = neighbors[1].neighbor;
+        const v1 = n1.position.clone().sub(atom.position).normalize();
+        const v2 = n2.position.clone().sub(atom.position).normalize();
+
+        let normal = new THREE.Vector3().crossVectors(v1, v2);
+        if (normal.lengthSq() < 1e-4) {
+          normal = Math.abs(v1.z) < 0.9 ? new THREE.Vector3(0, 0, 1) : new THREE.Vector3(0, 1, 0);
+        } else {
+          normal.normalize();
+        }
+
+        // Match phase sign with existing neighbor p-orbitals if present
+        let refP = null;
+        for (let i = 0; i < neighbors.length; i++) {
+          const ax = getAtomUnhybridAxes(neighbors[i].neighbor);
+          if (ax.length > 0) {
+            refP = ax[0].worldPosDir;
+            break;
+          }
+        }
+        if (refP && normal.dot(refP) < 0) {
+          normal.negate();
+        }
+
+        let zLocal = normal;
+        let xLocal = v1.clone();
+        let yLocal = new THREE.Vector3().crossVectors(zLocal, xLocal).normalize();
+        zLocal = new THREE.Vector3().crossVectors(xLocal, yLocal).normalize();
+
+        const rotMat = new THREE.Matrix4().makeBasis(xLocal, yLocal, zLocal);
+        atom.rotation.setFromRotationMatrix(rotMat, 'XYZ');
+        atom.group.rotation.copy(atom.rotation);
+        return true;
+      }
     }
 
     function toggleTheme() {
@@ -2661,7 +2854,18 @@
 
       updateOrbital(newType) {
         this.orbitalType = newType;
+        if (newType === 'sp2' || newType === 'sp') {
+          alignAtomWithBondedNeighbors(this);
+          const neighbors = getBondedNeighbors(this);
+          neighbors.forEach(n => {
+            if (n.neighbor.orbitalType === 'sp2' || n.neighbor.orbitalType === 'sp') {
+              alignAtomWithBondedNeighbors(n.neighbor);
+              n.neighbor.rebuildOrbital();
+            }
+          });
+        }
         this.rebuildOrbital();
+        updateSelectedAtomAxes();
       }
 
       rebuildOrbital() {
@@ -2815,9 +3019,20 @@
     function updateUI() {
       atomCountEl.textContent = state.atoms.length;
 
+      document.body.classList.toggle('has-multi-selection', state.selectedIds.size > 1);
+
       const multiCountBadge = document.getElementById('multi-select-count-badge');
       if (multiCountBadge) {
         multiCountBadge.textContent = `${state.selectedIds.size} Selected`;
+      }
+
+      const multiBondCountBadge = document.getElementById('multi-bond-count-badge');
+      if (multiBondCountBadge) {
+        let bondCount = 0;
+        state.covalentBonds.forEach(b => {
+          if (state.selectedIds.has(b.atomAId) && state.selectedIds.has(b.atomBId)) bondCount++;
+        });
+        multiBondCountBadge.textContent = `${bondCount} Bond${bondCount === 1 ? '' : 's'}`;
       }
 
       // Render Badges
@@ -3141,6 +3356,13 @@
       if (totalElems === 2 && numS === 1 && numF === 6) {
         formulaEl.textContent = 'SF₆';
         nameEl.textContent = 'Sulfur Hexafluoride (sp³d²)';
+        return;
+      }
+
+      // 11. Nitrogen Dioxide (NO2)
+      if (totalElems === 2 && numN === 1 && numO === 2) {
+        formulaEl.textContent = 'NO₂';
+        nameEl.textContent = 'Nitrogen Dioxide (Radical / Conjugated π)';
         return;
       }
 
@@ -3580,13 +3802,79 @@
     if (modeBuildBtn) modeBuildBtn.addEventListener('click', () => setInteractionMode('build'));
     if (modeBoxBtn) modeBoxBtn.addEventListener('click', () => setInteractionMode('box'));
 
-    // Quick Attach Toolbar Presets
+    // Quick Attach Toolbar Presets & Multi-Orbital Cycling
+    const ELEMENT_ORBITAL_OPTIONS = {
+      H: ['s'],
+      C: ['sp3', 'sp2', 'sp'],
+      O: ['sp3', 'sp2', 'sp'],
+      N: ['sp3', 'sp2', 'sp'],
+      S: ['sp3d2', 'sp3', 'sp2', 'sp3d'],
+      P: ['sp3d', 'sp3'],
+      F: ['pz'],
+      Cl: ['pz']
+    };
+
+    const ELEMENT_ORBITAL_INDEX = {
+      H: 0,
+      C: 0, // sp3
+      O: 0, // sp3
+      N: 0, // sp3
+      S: 0, // sp3d2
+      P: 0, // sp3d
+      F: 0, // pz
+      Cl: 0 // pz
+    };
+
+    const ORBITAL_DISPLAY_LABELS = {
+      s: '1s',
+      sp: 'sp',
+      sp2: 'sp²',
+      sp3: 'sp³',
+      sp3d: 'sp³d',
+      sp3d2: 'sp³d²',
+      pz: 'p'
+    };
+
+    function updateQuickBuildStatus() {
+      const textEl = document.getElementById('quick-build-current-text');
+      if (!textEl) return;
+      const elem = state.quickBuildElem || 'H';
+      const orb = state.quickBuildOrbital || 's';
+      const defaults = ELEMENT_DEFAULTS[elem] || { color: '#ffffff' };
+      const orbLabel = ORBITAL_DISPLAY_LABELS[orb] || orb;
+      textEl.innerHTML = `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${defaults.color};margin-right:4px;"></span>${elem} (${orbLabel})`;
+    }
+
     document.querySelectorAll('.quick-attach-btn').forEach(btn => {
+      const elem = btn.dataset.elem;
       btn.addEventListener('click', () => {
-        document.querySelectorAll('.quick-attach-btn').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        state.quickBuildElem = btn.dataset.elem;
-        state.quickBuildOrbital = btn.dataset.orbital;
+        const isAlreadyActive = btn.classList.contains('active') && state.quickBuildElem === elem;
+        const options = ELEMENT_ORBITAL_OPTIONS[elem] || ['s'];
+
+        if (isAlreadyActive && options.length > 1) {
+          // Cycle to next orbital option for this element!
+          ELEMENT_ORBITAL_INDEX[elem] = (ELEMENT_ORBITAL_INDEX[elem] + 1) % options.length;
+          const newOrb = options[ELEMENT_ORBITAL_INDEX[elem]];
+          state.quickBuildOrbital = newOrb;
+
+          // Update badge inside button
+          const badge = btn.querySelector('.orb-badge');
+          if (badge) badge.textContent = ORBITAL_DISPLAY_LABELS[newOrb] || newOrb;
+
+          showToast(`Cycled ${elem} orbital to ${ORBITAL_DISPLAY_LABELS[newOrb] || newOrb}`, '⟳');
+        } else {
+          // Switch active element
+          document.querySelectorAll('.quick-attach-btn').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          state.quickBuildElem = elem;
+          const currentOrb = options[ELEMENT_ORBITAL_INDEX[elem]] || options[0];
+          state.quickBuildOrbital = currentOrb;
+
+          const badge = btn.querySelector('.orb-badge');
+          if (badge) badge.textContent = ORBITAL_DISPLAY_LABELS[currentOrb] || currentOrb;
+        }
+
+        updateQuickBuildStatus();
         setInteractionMode('build');
       });
     });
@@ -3696,6 +3984,142 @@
       batchDeleteBtn.addEventListener('click', () => {
         const ids = Array.from(state.selectedIds);
         ids.forEach(id => removeAtom(id));
+      });
+    }
+
+    function formCovalentBondsForSelected() {
+      const selected = Array.from(state.selectedIds).map(id => state.atoms.find(a => a.id === id)).filter(Boolean);
+      if (selected.length < 2) {
+        showToast('Select 2 or more atoms to form covalent bond(s)', 'ℹ️');
+        return;
+      }
+      let addedCount = 0;
+      if (selected.length === 2) {
+        const bond = addCovalentBond(selected[0], selected[1]);
+        if (bond) addedCount++;
+      } else {
+        // Connect adjacent pairs within typical bond distance (dist <= 2.5)
+        for (let i = 0; i < selected.length; i++) {
+          for (let j = i + 1; j < selected.length; j++) {
+            const a = selected[i];
+            const b = selected[j];
+            const dist = a.position.distanceTo(b.position);
+            if (dist > 0.3 && dist <= 2.5) {
+              const bond = addCovalentBond(a, b);
+              if (bond) addedCount++;
+            }
+          }
+        }
+      }
+
+      // If any selected atoms are sp2 or sp, auto-align them
+      selected.forEach(atom => {
+        if (atom.orbitalType === 'sp2' || atom.orbitalType === 'sp') {
+          alignAtomWithBondedNeighbors(atom);
+          atom.rebuildOrbital();
+        }
+      });
+
+      updateAllCovalentBonds();
+      updateUI();
+      if (addedCount > 0) {
+        showToast(`Formed ${addedCount} covalent bond(s) between selected atoms`, '🔗');
+      } else {
+        showToast('Atoms are too far apart to form bonds (> 2.5 units). Move them closer or select exactly 2 atoms.', '⚠️');
+      }
+    }
+
+    function removeCovalentBondsForSelected() {
+      const selected = Array.from(state.selectedIds).map(id => state.atoms.find(a => a.id === id)).filter(Boolean);
+      if (selected.length < 2) {
+        showToast('Select 2 or more atoms to remove bonds between them', 'ℹ️');
+        return;
+      }
+      let removedCount = 0;
+      for (let i = 0; i < selected.length; i++) {
+        for (let j = i + 1; j < selected.length; j++) {
+          removedCount += removeCovalentBondBetween(selected[i].id, selected[j].id);
+        }
+      }
+      updateUI();
+      if (removedCount > 0) {
+        showToast(`Removed ${removedCount} covalent bond(s)`, '🧹');
+      } else {
+        showToast('No covalent bonds found between the selected atoms', 'ℹ️');
+      }
+    }
+
+    function alignSelectedPOrbitals() {
+      const selected = Array.from(state.selectedIds).map(id => state.atoms.find(a => a.id === id)).filter(Boolean);
+      if (selected.length < 2) {
+        showToast('Select 2 or more atoms to align p-orbitals', 'ℹ️');
+        return;
+      }
+      let count = 0;
+      selected.forEach(atom => {
+        if (atom.orbitalType === 'sp2' || atom.orbitalType === 'sp') {
+          if (alignAtomWithBondedNeighbors(atom)) {
+            atom.rebuildOrbital();
+            count++;
+          }
+        }
+      });
+      if (count === 0 && selected.length === 2) {
+        const a = selected[0];
+        const b = selected[1];
+        if ((a.orbitalType === 'sp2' || a.orbitalType === 'sp') && (b.orbitalType === 'sp2' || b.orbitalType === 'sp')) {
+          alignSelectedPhases();
+          return;
+        }
+      }
+      updateSelectedAtomAxes();
+      updateUI();
+      if (count > 0) {
+        showToast(`✨ Auto-aligned p-orbitals for ${count} atom(s) parallel and in-phase!`, '✨');
+      } else {
+        showToast('Selected atoms must be sp or sp² and bonded to align p-orbitals', 'ℹ️');
+      }
+    }
+
+    const multiFormCovalentBtn = document.getElementById('multi-form-covalent-btn');
+    if (multiFormCovalentBtn) {
+      multiFormCovalentBtn.addEventListener('click', () => {
+        formCovalentBondsForSelected();
+      });
+    }
+
+    const multiRemoveCovalentBtn = document.getElementById('multi-remove-covalent-btn');
+    if (multiRemoveCovalentBtn) {
+      multiRemoveCovalentBtn.addEventListener('click', () => {
+        removeCovalentBondsForSelected();
+      });
+    }
+
+    const multiAlignPBtn = document.getElementById('multi-align-p-btn');
+    if (multiAlignPBtn) {
+      multiAlignPBtn.addEventListener('click', () => {
+        alignSelectedPOrbitals();
+      });
+    }
+
+    const singleAlignPBtn = document.getElementById('single-align-p-btn');
+    if (singleAlignPBtn) {
+      singleAlignPBtn.addEventListener('click', () => {
+        if (state.selectedIds.size === 1) {
+          const atomId = Array.from(state.selectedIds)[0];
+          const atom = state.atoms.find(a => a.id === atomId);
+          if (atom) {
+            const aligned = alignAtomWithBondedNeighbors(atom);
+            if (aligned) {
+              atom.rebuildOrbital();
+              updateSelectedAtomAxes();
+              updateUI();
+              showToast(`Aligned ${atom.name} p-orbital parallel to bonded neighbor`, '✨');
+            } else {
+              showToast(`${atom.name} has no bonded neighbors or is not sp/sp²`, 'ℹ️');
+            }
+          }
+        }
       });
     }
 
@@ -3966,6 +4390,18 @@
         return;
       }
 
+      // Check if any pairs among the selected set have covalent bonds
+      let anyCovalentBondInSelection = false;
+      for (let i = 0; i < selected.length; i++) {
+        for (let j = i + 1; j < selected.length; j++) {
+          if (hasCovalentBond(selected[i], selected[j])) {
+            anyCovalentBondInSelection = true;
+            break;
+          }
+        }
+        if (anyCovalentBondInSelection) break;
+      }
+
       let bondingCount = 0;
       let antibondingCount = 0;
       let nonParallelCount = 0;
@@ -3976,6 +4412,17 @@
           const b = selected[j];
           const dist = a.position.distanceTo(b.position);
           if (dist <= 0.4 || dist > 4.2) continue;
+
+          // Physically realistic restriction:
+          // In multiple selection (e.g. Benzene ring), only form pi-bond bridges between
+          // adjacent atoms directly connected by a covalent sigma-bond!
+          // This eliminates diagonal/crossing bridges across rings.
+          const isBonded = hasCovalentBond(a, b);
+          if (anyCovalentBondInSelection && !isBonded) {
+            continue; // Skip non-bonded pairs (e.g. C1-C4 across benzene ring)
+          } else if (!anyCovalentBondInSelection && selected.length > 2 && dist > 2.2) {
+            continue; // If no bonds built yet, only connect immediate neighbors within 2.2 units
+          }
 
           const bondDir = b.position.clone().sub(a.position).normalize();
           const axesA = getAtomUnhybridAxes(a);
@@ -4651,7 +5098,7 @@
       const childOrbital = state.quickBuildOrbital || 's';
       let bondDist = 2.40;
       if (childElem === 'H') bondDist = 1.95;
-      else if (childElem === 'F') bondDist = 2.05;
+      else if (childElem === 'F' || childElem === 'Cl') bondDist = 2.05;
       else if (childElem === 'S' || childElem === 'P') bondDist = 2.55;
 
       const attachPos = parentAtom.position.clone().add(worldDir.clone().multiplyScalar(bondDist));
