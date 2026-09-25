@@ -2011,8 +2011,17 @@
         return true;
       } else {
         // 2 or more neighbors (central atom, e.g. Nitrogen in NO2, or Carbon in Benzene/Ethylene)
-        const n1 = neighbors[0].neighbor;
-        const n2 = neighbors[1].neighbor;
+        // Sort neighbors so heavy/non-H atoms come first to align primary hybrid lobe along the C-C / principal bond
+        const sorted = [...neighbors].sort((a, b) => {
+          const aIsH = a.neighbor.element === 'H' || a.neighbor.name.startsWith('H');
+          const bIsH = b.neighbor.element === 'H' || b.neighbor.name.startsWith('H');
+          if (aIsH && !bIsH) return 1;
+          if (!aIsH && bIsH) return -1;
+          return 0;
+        });
+
+        const n1 = sorted[0].neighbor;
+        const n2 = sorted[1].neighbor;
         const v1 = n1.position.clone().sub(atom.position).normalize();
         const v2 = n2.position.clone().sub(atom.position).normalize();
 
@@ -4592,14 +4601,16 @@
       addCovalentBond(c1, c2);
 
       // 4 Hydrogens with small s-orbitals
+      // In sp² trigonal planar geometry, all bond angles are strictly 120°!
+      // C-C bond lies along X axis; C-H bonds are at 120° and 240° relative to C-C.
       const hDist = 1.95;
-      const cos30 = Math.cos(Math.PI / 6);
-      const sin30 = Math.sin(Math.PI / 6);
+      const cos60 = 0.5;
+      const sin60 = Math.sin(Math.PI / 3); // Math.sqrt(3) / 2 ≈ 0.866025
 
-      const h1 = addAtom({ name: 'H1', color: '#ffffff', radius: 0.26, orbitalType: 's', position: new THREE.Vector3(-1.2 - hDist * cos30, hDist * sin30, 0) });
-      const h2 = addAtom({ name: 'H2', color: '#ffffff', radius: 0.26, orbitalType: 's', position: new THREE.Vector3(-1.2 - hDist * cos30, -hDist * sin30, 0) });
-      const h3 = addAtom({ name: 'H3', color: '#ffffff', radius: 0.26, orbitalType: 's', position: new THREE.Vector3(1.2 + hDist * cos30, hDist * sin30, 0) });
-      const h4 = addAtom({ name: 'H4', color: '#ffffff', radius: 0.26, orbitalType: 's', position: new THREE.Vector3(1.2 + hDist * cos30, -hDist * sin30, 0) });
+      const h1 = addAtom({ name: 'H1', color: '#ffffff', radius: 0.26, orbitalType: 's', position: new THREE.Vector3(-1.2 - hDist * cos60,  hDist * sin60, 0) });
+      const h2 = addAtom({ name: 'H2', color: '#ffffff', radius: 0.26, orbitalType: 's', position: new THREE.Vector3(-1.2 - hDist * cos60, -hDist * sin60, 0) });
+      const h3 = addAtom({ name: 'H3', color: '#ffffff', radius: 0.26, orbitalType: 's', position: new THREE.Vector3( 1.2 + hDist * cos60,  hDist * sin60, 0) });
+      const h4 = addAtom({ name: 'H4', color: '#ffffff', radius: 0.26, orbitalType: 's', position: new THREE.Vector3( 1.2 + hDist * cos60, -hDist * sin60, 0) });
 
       addCovalentBond(c1, h1);
       addCovalentBond(c1, h2);
