@@ -1,0 +1,284 @@
+/* Mode Visibility Configuration for Sidebar Panels */
+body.mode-orbit #teaching-presets-card,
+body.mode-orbit #atoms-roster-card {
+  display: flex !important;
+}
+body.mode-orbit #quick-build-card,
+body.mode-orbit #manual-build-card,
+body.mode-orbit #atom-inspector,
+body.mode-orbit #orbital-select-card,
+body.mode-orbit #orbital-styling-card,
+body.mode-orbit #multi-select-card {
+  display: none !important;
+}
+
+body.mode-build #quick-build-card,
+body.mode-build #manual-build-card,
+body.mode-build #atom-inspector,
+body.mode-build #orbital-select-card,
+body.mode-build #orbital-styling-card,
+body.mode-build #atoms-roster-card {
+  display: flex !important;
+}
+body.mode-build #teaching-presets-card {
+  display: none !important;
+}
+body.mode-build:not(.has-multi-selection) #multi-select-card {
+  display: none !important;
+}
+
+body.mode-box #multi-select-card,
+body.has-multi-selection #multi-select-card,
+body.mode-box #atom-inspector,
+body.mode-box #atoms-roster-card {
+  display: flex !important;
+}
+body.mode-box #teaching-presets-card,
+body.mode-box #quick-build-card,
+body.mode-box #manual-build-card,
+body.mode-box #orbital-select-card,
+body.mode-box #orbital-styling-card {
+  display: none !important;
+}
+
+/* Comprehensive Light Mode Theme (High Contrast Black Text & Light Badges/Buttons) */
+body.theme-light {
+  --bg-dark: #f8fafc;
+  --panel-bg: #ffffff;
+  --panel-border: #e2e8f0;
+  --card-bg: #ffffff;
+  --card-border: #e2e8f0;
+  --input-bg: #f8fafc;
+  --text-main: #0f172a;
+  --text-muted: #334155;
+  --text-dim: #64748b;
+  --accent-cyan: #0284c7;
+  color: #0f172a;
+}
+body.theme-light #viewport-container {
+  background: radial-gradient(circle at 50% 50%, #f1f5f9 0%, #e2e8f0 100%);
+}
+body.theme-light #sidebar {
+  background: #ffffff;
+  border-right-color: #e2e8f0;
+  box-shadow: 4px 0 24px rgba(0, 0, 0, 0.06);
+  color: #0f172a;
+}
+body.theme-light .sidebar-header {
+  background: #f8fafc;
+  border-bottom-color: #e2e8f0;
+}
+body.theme-light .brand-title {
+  color: #0f172a !important;
+}
+body.theme-light .brand-subtitle {
+  color: #0284c7;
+}
+body.theme-light .section-card {
+  background: #ffffff;
+  border-color: #e2e8f0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  color: #0f172a;
+}
+body.theme-light .section-title {
+  color: #0f172a !important;
+}
+body.theme-light label,
+body.theme-light .slider-label,
+body.theme-light .slider-label span,
+body.theme-light .slider-label .value,
+body.theme-light .form-row label {
+  color: #0f172a !important;
+}
+body.theme-light .sidebar-mode-banner {
+  background: #f0f9ff;
+  border-color: #bae6fd;
+  color: #0369a1 !important;
+}
+body.theme-light .sidebar-mode-banner strong {
+  color: #0c4a6e !important;
+}
+body.theme-light .chem-info-box {
+  background: #f0f9ff;
+  border-left-color: #0284c7;
+  color: #0c4a6e !important;
+}
+body.theme-light .chem-info-box strong {
+  color: #0f172a !important;
+}
+body.theme-light .hud-card {
+  background: rgba(255, 255, 255, 0.95);
+  border-color: rgba(0, 0, 0, 0.12);
+  color: #0f172a !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+}
+body.theme-light .hud-title {
+  color: #0f172a !important;
+}
+body.theme-light .hud-pill {
+  background: #e2e8f0;
+  color: #0f172a !important;
+}
+body.theme-light .hud-mode-bar {
+  background: rgba(255, 255, 255, 0.95);
+  border-color: rgba(0, 0, 0, 0.12);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+}
+body.theme-light .mode-tab {
+  color: #334155 !important;
+}
+body.theme-light .mode-tab:hover {
+  background: #f1f5f9;
+  color: #0f172a !important;
+}
+body.theme-light .mode-tab.active {
+  background: #0284c7;
+  color: #ffffff !important;
+  box-shadow: 0 2px 8px rgba(2, 132, 199, 0.35);
+}
+body.theme-light .btn {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+  color: #0f172a !important;
+}
+body.theme-light .btn:hover {
+  background: #f1f5f9;
+  border-color: #94a3b8;
+  color: #0f172a !important;
+}
+body.theme-light .btn-primary {
+  background: #0284c7 !important;
+  color: #ffffff !important;
+  border-color: #0284c7 !important;
+}
+body.theme-light .btn-danger {
+  background: rgba(239, 68, 68, 0.12) !important;
+  color: #dc2626 !important;
+  border-color: #fca5a5 !important;
+}
+body.theme-light .atom-badge {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+  color: #0f172a !important;
+}
+body.theme-light .atom-badge:hover {
+  border-color: #0284c7;
+  background: #f1f5f9;
+}
+body.theme-light .atom-badge.selected {
+  background: #e0f2fe;
+  border-color: #0284c7;
+  color: #0369a1 !important;
+  box-shadow: 0 0 8px rgba(2, 132, 199, 0.25);
+}
+body.theme-light .orbital-btn {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+  color: #0f172a !important;
+}
+body.theme-light .orbital-btn:hover {
+  background: #f1f5f9;
+  border-color: #94a3b8;
+}
+body.theme-light .orbital-btn .symbol {
+  color: #0f172a !important;
+}
+body.theme-light .orbital-btn .label {
+  color: #334155 !important;
+}
+body.theme-light .orbital-btn.active {
+  background: #e0f2fe;
+  border-color: #0284c7;
+  box-shadow: 0 0 8px rgba(2, 132, 199, 0.25);
+}
+body.theme-light .orbital-btn.active .symbol {
+  color: #0284c7 !important;
+}
+body.theme-light .quick-attach-btn {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+  color: #0f172a !important;
+}
+body.theme-light .quick-attach-btn:hover {
+  background: #f1f5f9;
+}
+body.theme-light .quick-attach-btn.active {
+  background: #e0f2fe;
+  border-color: #0284c7;
+  color: #0284c7 !important;
+}
+body.theme-light .orb-badge {
+  background: rgba(2, 132, 199, 0.15);
+  color: #0284c7;
+}
+body.theme-light .quick-attach-btn.active .orb-badge {
+  background: #0284c7;
+  color: #ffffff;
+}
+body.theme-light .elem-chip {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+  color: #0f172a !important;
+}
+body.theme-light .elem-chip:hover {
+  background: #f1f5f9;
+}
+body.theme-light .rot-step-btn,
+body.theme-light .batch-orb-btn {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+  color: #0f172a !important;
+}
+body.theme-light .rot-step-btn:hover,
+body.theme-light .batch-orb-btn:hover {
+  background: #f1f5f9;
+}
+body.theme-light input[type="text"],
+body.theme-light input[type="number"],
+body.theme-light .form-control-input,
+body.theme-light select {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+  color: #0f172a !important;
+}
+body.theme-light input[type="range"] {
+  background: #cbd5e1;
+}
+body.theme-light input[type="range"]::-webkit-slider-thumb {
+  background: #0284c7;
+  box-shadow: 0 0 6px rgba(2, 132, 199, 0.4);
+}
+body.theme-light .control-tips {
+  background: rgba(255, 255, 255, 0.94);
+  border-color: rgba(0, 0, 0, 0.12);
+  color: #0f172a !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+}
+body.theme-light .control-tips span {
+  color: #334155 !important;
+}
+body.theme-light .control-tips .kbd {
+  background: #e2e8f0;
+  color: #0f172a !important;
+  border-color: #cbd5e1;
+}
+body.theme-light .toast-notification {
+  background: rgba(255, 255, 255, 0.96);
+  border-color: #0284c7;
+  color: #0f172a !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+}
+body.theme-light .hud-formula-card {
+  background: rgba(255, 255, 255, 0.95);
+  border-color: rgba(0, 0, 0, 0.12);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+}
+body.theme-light .hud-formula-header {
+  color: #475569 !important;
+}
+body.theme-light .hud-formula-text {
+  color: #0284c7 !important;
+}
+body.theme-light .hud-formula-sub {
+  color: #334155 !important;
+}

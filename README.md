@@ -10,9 +10,9 @@
 
 <p align="center">
   <a href="https://hmh-215.github.io/ChemOrbital_3D/"><img src="https://img.shields.io/badge/Live_Demo-GitHub_Pages-22c55e?style=for-the-badge&logo=githubpages&logoColor=white" alt="Live Demo" /></a>
-  <img src="https://img.shields.io/badge/Three.js-r128-0284c7?style=for-the-badge&logo=three.js&logoColor=white" alt="Three.js" />
-  <img src="https://img.shields.io/badge/Vanilla-JavaScript-f59e0b?style=for-the-badge&logo=javascript&logoColor=white" alt="JavaScript" />
-  <img src="https://img.shields.io/badge/HTML5-Single--File-ef4444?style=for-the-badge&logo=html5&logoColor=white" alt="HTML5" />
+  <img src="https://img.shields.io/badge/Architecture-Modular_MVVM-8b5cf6?style=for-the-badge" alt="MVVM Architecture" />
+  <img src="https://img.shields.io/badge/JavaScript-ES6_Modules-f59e0b?style=for-the-badge&logo=javascript&logoColor=white" alt="JavaScript" />
+  <img src="https://img.shields.io/badge/Three.js-r128_Bundled-0284c7?style=for-the-badge&logo=three.js&logoColor=white" alt="Three.js" />
 </p>
 
 ## 🔬 Scope & Educational Approach
@@ -180,7 +180,12 @@ A real-time floating card at the bottom-right corner of the canvas dynamically c
 
 ---
 
-## 💻 Tech Stack
+## 💻 Tech Stack & Architecture
 
-- **Libraries:** Pure vanilla JavaScript with [Three.js](https://threejs.org/) (r128) and OrbitControls loaded via CDN.
-- **Architecture:** Zero-dependency standalone HTML file (`index.html`). Can be run completely offline by double-clicking `index.html` in any modern web browser or hosted on static hosts like GitHub Pages.
+- **Architecture:** Clean **Model-View-ViewModel (MVVM)** pattern with zero-build native ES6 modules:
+  - `src/models/`: Pure chemistry domain state & mathematical algorithms (Hill formula generator, unhybridized $p$-axis extraction, parallel $p$-orbital alignment, VSEPR geometries, bond/bridge topology).
+  - `src/viewmodels/`: Reactive mediator (`MoleculeViewModel`) emitting decoupled events for selections, batch modifications, preset loading, and topological transformations.
+  - `src/views/`: 3D WebGL managers (`ThreeSceneView`, `AtomMeshManager`, `OrbitalMeshFactory`, `BondMeshManager`, `BridgeMeshManager`) and 2D DOM managers (`UIController`, `SidebarView`, `HudView`).
+  - `css/`: Modular stylesheets (`main.css`, `sidebar.css`, `hud.css`, `theme.css`).
+  - `lib/`: Vendored local Three.js r128 & OrbitControls for instantaneous 100% offline capability.
+- **Zero Build Step:** Runs natively in any modern browser and GitHub Pages without requiring Node.js, npm, bundlers, or compilation steps.
