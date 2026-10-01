@@ -140,6 +140,18 @@ export class ThreeSceneView {
       this.bridgeManager.clearAll();
     });
 
+    this.vm.on('moleculeRestored', () => {
+      this.atomManager.clearAll();
+      this.bondManager.clearAll();
+      this.bridgeManager.clearAll();
+      this.vm.atoms.forEach(atom => {
+        this.atomManager.addAtomMesh(atom, this._getOrbitalOptions());
+      });
+      this.bondManager.updateAllBonds(this.vm.bonds, (id) => this.vm.model.getAtom(id));
+      this.bridgeManager.renderBridges(this.vm.bridges, (id) => this.vm.model.getAtom(id), this.vm.orbitalOpacity);
+      this.atomManager.updateSelection(this.vm.selectedIds, this.vm.primarySelectedAtom);
+    });
+
     this.vm.on('displaySettingsChanged', () => {
       this.atomManager.rebuildAllOrbitals(this._getOrbitalOptions());
       this.bridgeManager.renderBridges(this.vm.bridges, (id) => this.vm.model.getAtom(id), this.vm.orbitalOpacity);

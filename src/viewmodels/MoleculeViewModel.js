@@ -11,6 +11,7 @@ import {
   getAtomUnhybridAxes,
   alignAtomWithBondedNeighbors,
   calculateAttachment,
+  calculateRepulsionOptimizedRotation,
   computeMolecularFormula
 } from '../models/ChemistryMath.js';
 import {
@@ -37,6 +38,91 @@ export class MoleculeViewModel extends EventEmitter {
     this.showBackLobes = false;
     this.showUnhybridP = true;
     this.elementOrbitalIndex = { ...ELEMENT_ORBITAL_INDEX };
+
+    // Undo / Redo history stacks (up to 3 reversals)
+    this.undoStack = [];
+    this.redoStack = [];
+    this._isRestoring = false;
+    this._isContinuousChange = false;
+  }
+
+  // --- Undo / Redo System (Up to 3 Reversals) ---
+  pushUndoSnapshot() {
+    if (this._isRestoring || this._isContinuousChange) return;
+    const snapshot = this.model.getSnapshot();
+    this.undoStack.push(snapshot);
+    if (this.undoStack.length > 3) {
+      this.undoStack.shift();
+    }
+    this.redoStack = [];
+    this.emit('historyChanged', { canUndo: this.canUndo, canRedo: this.canRedo });
+  }
+
+  beginContinuousChange() {
+    if (this._isContinuousChange || this._isRestoring) return;
+    this.pushUndoSnapshot();
+    this._isContinuousChange = true;
+  }
+
+  endContinuousChange() {
+    this._isContinuousChange = false;
+    this.emit('historyChanged', { canUndo: this.canUndo, canRedo: this.canRedo });
+  }
+
+  get canUndo() {
+    return this.undoStack.length > 0;
+  }
+
+  get canRedo() {
+    return this.redoStack.length > 0;
+  }
+
+  undo() {
+    if (this.undoStack.length === 0) {
+      this.showToast('No more actions to undo (max: 3 reversals)', 'ℹ️');
+      return false;
+    }
+
+    const current = this.model.getSnapshot();
+    const target = this.undoStack.pop();
+    this.redoStack.push(current);
+    if (this.redoStack.length > 3) {
+      this.redoStack.shift();
+    }
+
+    this._isRestoring = true;
+    this.model.restoreSnapshot(target);
+    this._isRestoring = false;
+
+    this.emit('moleculeRestored');
+    this.emit('historyChanged', { canUndo: this.canUndo, canRedo: this.canRedo });
+    this._onStateMutated();
+    this.showToast(`Undid action (${this.undoStack.length}/3 remaining)`, '↩️');
+    return true;
+  }
+
+  redo() {
+    if (this.redoStack.length === 0) {
+      this.showToast('No actions to redo', 'ℹ️');
+      return false;
+    }
+
+    const current = this.model.getSnapshot();
+    const target = this.redoStack.pop();
+    this.undoStack.push(current);
+    if (this.undoStack.length > 3) {
+      this.undoStack.shift();
+    }
+
+    this._isRestoring = true;
+    this.model.restoreSnapshot(target);
+    this._isRestoring = false;
+
+    this.emit('moleculeRestored');
+    this.emit('historyChanged', { canUndo: this.canUndo, canRedo: this.canRedo });
+    this._onStateMutated();
+    this.showToast('Redid action', '↪️');
+    return true;
   }
 
   // --- Getters ---
@@ -82,20 +168,34 @@ export class MoleculeViewModel extends EventEmitter {
 
   // --- Atom CRUD ---
   addAtom(options = {}) {
+    this.pushUndoSnapshot();
+
     const name = options.name || ('C' + (this.model.atoms.length + 1));
     const element = options.element || parseElementFromName(name);
     const defaults = ELEMENT_DEFAULTS[element] || { color: '#334155', radius: 0.42, defaultOrbital: 'none' };
+    const orbitalType = options.orbitalType !== undefined ? options.orbitalType : 'none';
+    const position = options.position ? options.position.clone() : new THREE.Vector3(0, 0, 0);
+
+    // If rotation is not explicitly provided, calculate optimal rotation that minimizes electron-pair repulsion
+    let rotation = options.rotation ? options.rotation.clone() : null;
+    if (!rotation) {
+      rotation = calculateRepulsionOptimizedRotation({
+        newPos: position,
+        orbitalType,
+        existingAtoms: this.model.atoms
+      });
+    }
 
     const atomData = {
       name,
       element,
       color: options.color || defaults.color,
       radius: options.radius !== undefined ? options.radius : defaults.radius,
-      orbitalType: options.orbitalType !== undefined ? options.orbitalType : 'none',
+      orbitalType,
       showArrangement: options.showArrangement || false,
       showNodalPlanes: options.showNodalPlanes || false,
-      position: options.position || new THREE.Vector3(0, 0, 0),
-      rotation: options.rotation || new THREE.Euler(0, 0, 0, 'XYZ')
+      position,
+      rotation
     };
 
     const atom = this.model.addAtom(atomData);
@@ -105,6 +205,7 @@ export class MoleculeViewModel extends EventEmitter {
   }
 
   removeAtom(atomId) {
+    this.pushUndoSnapshot();
     const removed = this.model.removeAtom(atomId);
     if (removed) {
       this.emit('atomRemoved', atomId);
@@ -116,13 +217,33 @@ export class MoleculeViewModel extends EventEmitter {
   removeSelectedAtoms() {
     const ids = Array.from(this.model.selectedIds);
     if (ids.length === 0) return;
-    ids.forEach(id => this.removeAtom(id));
+
+    this.pushUndoSnapshot();
+    this._isContinuousChange = true;
+    try {
+      ids.forEach(id => {
+        const removed = this.model.removeAtom(id);
+        if (removed) this.emit('atomRemoved', id);
+      });
+      this._onStateMutated();
+    } finally {
+      this._isContinuousChange = false;
+    }
     this.showToast(`Removed ${ids.length} atom(s)`, '🗑️');
   }
 
   duplicateSelectedAtom() {
     const selected = this.primarySelectedAtom;
     if (!selected) return;
+
+    this.pushUndoSnapshot();
+    const dupPos = selected.position.clone().add(new THREE.Vector3(1.5, 0, 0));
+    const dupRot = calculateRepulsionOptimizedRotation({
+      newPos: dupPos,
+      orbitalType: selected.orbitalType,
+      existingAtoms: this.model.atoms
+    });
+
     const copy = this.addAtom({
       name: selected.name + '_copy',
       element: selected.element,
@@ -131,8 +252,8 @@ export class MoleculeViewModel extends EventEmitter {
       orbitalType: selected.orbitalType,
       showArrangement: selected.showArrangement,
       showNodalPlanes: selected.showNodalPlanes,
-      rotation: selected.rotation.clone(),
-      position: selected.position.clone().add(new THREE.Vector3(1.5, 0, 0))
+      rotation: dupRot,
+      position: dupPos
     });
     this.selectAtom(copy.id);
     this.showToast(`Duplicated ${selected.name}`, '📋');
@@ -141,19 +262,34 @@ export class MoleculeViewModel extends EventEmitter {
   duplicateSelectedAtoms() {
     const selected = this.selectedAtoms;
     if (selected.length === 0) return;
-    selected.forEach(s => {
-      this.addAtom({
-        name: s.name + '_copy',
-        element: s.element,
-        color: s.color,
-        radius: s.radius,
-        orbitalType: s.orbitalType,
-        showArrangement: s.showArrangement,
-        showNodalPlanes: s.showNodalPlanes,
-        rotation: s.rotation.clone(),
-        position: s.position.clone().add(new THREE.Vector3(1.5, 0, 0))
+
+    this.pushUndoSnapshot();
+    this._isContinuousChange = true;
+    try {
+      selected.forEach(s => {
+        const dupPos = s.position.clone().add(new THREE.Vector3(1.5, 0, 0));
+        const dupRot = calculateRepulsionOptimizedRotation({
+          newPos: dupPos,
+          orbitalType: s.orbitalType,
+          existingAtoms: this.model.atoms
+        });
+
+        this.addAtom({
+          name: s.name + '_copy',
+          element: s.element,
+          color: s.color,
+          radius: s.radius,
+          orbitalType: s.orbitalType,
+          showArrangement: s.showArrangement,
+          showNodalPlanes: s.showNodalPlanes,
+          rotation: dupRot,
+          position: dupPos
+        });
       });
-    });
+      this._onStateMutated();
+    } finally {
+      this._isContinuousChange = false;
+    }
     this.showToast(`Duplicated ${selected.length} atom(s)`, '📋');
   }
 
@@ -182,6 +318,8 @@ export class MoleculeViewModel extends EventEmitter {
   updateAtomProperty(atomId, prop, value) {
     const atom = this.model.getAtom(atomId);
     if (!atom) return;
+
+    this.pushUndoSnapshot();
 
     if (prop === 'name') {
       atom.name = value;
@@ -215,6 +353,7 @@ export class MoleculeViewModel extends EventEmitter {
   updateAtomPosition(atomId, x, y, z) {
     const atom = this.model.getAtom(atomId);
     if (!atom) return;
+    this.pushUndoSnapshot();
     atom.setPosition(x, y, z);
     this.emit('atomUpdated', atom);
     this.emit('bondsUpdated');
@@ -224,12 +363,14 @@ export class MoleculeViewModel extends EventEmitter {
   updateAtomRotation(atomId, rx, ry, rz) {
     const atom = this.model.getAtom(atomId);
     if (!atom) return;
+    this.pushUndoSnapshot();
     atom.setRotation(rx, ry, rz);
     this.emit('atomUpdated', atom);
     this._onStateMutated();
   }
 
   rotateSelectedAtomsAxisDelta(axis, deg) {
+    this.pushUndoSnapshot();
     const rad = deg * (Math.PI / 180);
     this.model.getSelectedAtoms().forEach(atom => {
       if (axis === 'x') atom.rotation.x = (atom.rotation.x + rad) % (Math.PI * 2);
@@ -242,6 +383,7 @@ export class MoleculeViewModel extends EventEmitter {
 
   // --- Batch Operations ---
   batchUpdateColor(colorHex) {
+    this.pushUndoSnapshot();
     this.model.getSelectedAtoms().forEach(atom => {
       atom.setColor(colorHex);
       this.emit('atomUpdated', atom);
@@ -250,20 +392,27 @@ export class MoleculeViewModel extends EventEmitter {
   }
 
   batchUpdateOrbital(orbitalType) {
-    this.model.getSelectedAtoms().forEach(atom => {
-      atom.setOrbitalType(orbitalType);
-      if (orbitalType === 'sp2' || orbitalType === 'sp') {
-        this.alignAtomWithBondedNeighbors(atom);
-      }
-      this.emit('atomUpdated', atom);
-    });
-    this._onStateMutated();
+    this.pushUndoSnapshot();
+    this._isContinuousChange = true;
+    try {
+      this.model.getSelectedAtoms().forEach(atom => {
+        atom.setOrbitalType(orbitalType);
+        if (orbitalType === 'sp2' || orbitalType === 'sp') {
+          this.alignAtomWithBondedNeighbors(atom);
+        }
+        this.emit('atomUpdated', atom);
+      });
+      this._onStateMutated();
+    } finally {
+      this._isContinuousChange = false;
+    }
   }
 
   batchToggleArrangement() {
     const selected = this.model.getSelectedAtoms();
     const anyOn = selected.some(a => a.showArrangement);
     const newState = !anyOn;
+    this.pushUndoSnapshot();
     selected.forEach(atom => {
       if (ARRANGEMENT_INFO[atom.orbitalType]) {
         atom.setShowArrangement(newState);
@@ -277,6 +426,7 @@ export class MoleculeViewModel extends EventEmitter {
     const selected = this.model.getSelectedAtoms();
     const anyOn = selected.some(a => a.showNodalPlanes);
     const newState = !anyOn;
+    this.pushUndoSnapshot();
     selected.forEach(atom => {
       if (NODAL_INFO[atom.orbitalType]) {
         atom.setShowNodalPlanes(newState);
@@ -288,6 +438,7 @@ export class MoleculeViewModel extends EventEmitter {
 
   // --- Covalent Bonding Operations ---
   addBond(atomAId, atomBId, customColor = null) {
+    this.pushUndoSnapshot();
     const bond = this.model.addBond(atomAId, atomBId, customColor);
     if (bond) {
       this.emit('bondAdded', bond);
@@ -297,6 +448,7 @@ export class MoleculeViewModel extends EventEmitter {
   }
 
   removeBond(atomAId, atomBId) {
+    this.pushUndoSnapshot();
     const removed = this.model.removeBond(atomAId, atomBId);
     if (removed) {
       this.emit('bondRemoved', removed);
@@ -312,27 +464,34 @@ export class MoleculeViewModel extends EventEmitter {
       return;
     }
 
+    this.pushUndoSnapshot();
+    this._isContinuousChange = true;
     let addedCount = 0;
-    if (selected.length === 2) {
-      const a = selected[0];
-      const b = selected[1];
-      if (!this.model.hasBond(a.id, b.id)) {
-        this.addBond(a.id, b.id);
-        addedCount++;
-      }
-    } else {
-      // Connect nearby pairs within 3.5 units
-      for (let i = 0; i < selected.length; i++) {
-        for (let j = i + 1; j < selected.length; j++) {
-          const a = selected[i];
-          const b = selected[j];
-          const dist = a.position.distanceTo(b.position);
-          if (dist > 0.4 && dist < 3.5 && !this.model.hasBond(a.id, b.id)) {
-            this.addBond(a.id, b.id);
-            addedCount++;
+
+    try {
+      if (selected.length === 2) {
+        const a = selected[0];
+        const b = selected[1];
+        if (!this.model.hasBond(a.id, b.id)) {
+          this.addBond(a.id, b.id);
+          addedCount++;
+        }
+      } else {
+        // Connect nearby pairs within 3.5 units
+        for (let i = 0; i < selected.length; i++) {
+          for (let j = i + 1; j < selected.length; j++) {
+            const a = selected[i];
+            const b = selected[j];
+            const dist = a.position.distanceTo(b.position);
+            if (dist > 0.4 && dist < 3.5 && !this.model.hasBond(a.id, b.id)) {
+              this.addBond(a.id, b.id);
+              addedCount++;
+            }
           }
         }
       }
+    } finally {
+      this._isContinuousChange = false;
     }
 
     if (addedCount > 0) {
@@ -349,12 +508,19 @@ export class MoleculeViewModel extends EventEmitter {
       return;
     }
 
+    this.pushUndoSnapshot();
+    this._isContinuousChange = true;
     let removedCount = 0;
-    for (let i = 0; i < selected.length; i++) {
-      for (let j = i + 1; j < selected.length; j++) {
-        const removed = this.removeBond(selected[i].id, selected[j].id);
-        if (removed) removedCount++;
+
+    try {
+      for (let i = 0; i < selected.length; i++) {
+        for (let j = i + 1; j < selected.length; j++) {
+          const removed = this.removeBond(selected[i].id, selected[j].id);
+          if (removed) removedCount++;
+        }
       }
+    } finally {
+      this._isContinuousChange = false;
     }
 
     if (removedCount > 0) {
@@ -380,6 +546,7 @@ export class MoleculeViewModel extends EventEmitter {
       return;
     }
 
+    this.pushUndoSnapshot();
     let alignedCount = 0;
     selected.forEach(atom => {
       if (atom.orbitalType === 'sp2' || atom.orbitalType === 'sp') {
@@ -397,6 +564,7 @@ export class MoleculeViewModel extends EventEmitter {
   }
 
   addBridge(bridgeOptions) {
+    this.pushUndoSnapshot();
     const bridge = this.model.addBridge(bridgeOptions);
     this.emit('bridgeAdded', bridge);
     this._onStateMutated();
@@ -404,6 +572,7 @@ export class MoleculeViewModel extends EventEmitter {
   }
 
   clearBridges() {
+    this.pushUndoSnapshot();
     this.model.clearBridges();
     this.emit('bridgesCleared');
     this._onStateMutated();
@@ -416,6 +585,9 @@ export class MoleculeViewModel extends EventEmitter {
       alert('Please select 2 or more atoms (using Box Marquee or Ctrl+Click) to test orbital overlap & form a π or π* bond!');
       return;
     }
+
+    this.pushUndoSnapshot();
+    this._isContinuousChange = true;
 
     // Check if any pairs among the selected set have covalent bonds
     let anyCovalentBondInSelection = false;
@@ -432,76 +604,82 @@ export class MoleculeViewModel extends EventEmitter {
     let bondingCount = 0;
     let antibondingCount = 0;
 
-    for (let i = 0; i < selected.length; i++) {
-      for (let j = i + 1; j < selected.length; j++) {
-        const a = selected[i];
-        const b = selected[j];
-        const dist = a.position.distanceTo(b.position);
-        if (dist <= 0.4 || dist > 4.2) continue;
+    try {
+      for (let i = 0; i < selected.length; i++) {
+        for (let j = i + 1; j < selected.length; j++) {
+          const a = selected[i];
+          const b = selected[j];
+          const dist = a.position.distanceTo(b.position);
+          if (dist <= 0.4 || dist > 4.2) continue;
 
-        const isBonded = this.model.hasBond(a.id, b.id);
-        if (anyCovalentBondInSelection && !isBonded) {
-          continue; // Skip non-bonded pairs (e.g. C1-C4 across benzene ring)
-        } else if (!anyCovalentBondInSelection && selected.length > 2 && dist > 2.2) {
-          continue;
-        }
+          const isBonded = this.model.hasBond(a.id, b.id);
+          if (anyCovalentBondInSelection && !isBonded) {
+            continue; // Skip non-bonded pairs (e.g. C1-C4 across benzene ring)
+          } else if (!anyCovalentBondInSelection && selected.length > 2 && dist > 2.2) {
+            continue;
+          }
 
-        const bondDir = b.position.clone().sub(a.position).normalize();
-        const axesA = getAtomUnhybridAxes(a);
-        const axesB = getAtomUnhybridAxes(b);
+          const bondDir = b.position.clone().sub(a.position).normalize();
+          const axesA = getAtomUnhybridAxes(a);
+          const axesB = getAtomUnhybridAxes(b);
 
-        if (axesA.length === 0 || axesB.length === 0) continue;
+          if (axesA.length === 0 || axesB.length === 0) continue;
 
-        const pairedB = new Set();
+          const pairedB = new Set();
 
-        axesA.forEach(axA => {
-          let bestB = null;
-          let bestDot = 0;
-          let bestAbsDot = 0;
+          axesA.forEach(axA => {
+            let bestB = null;
+            let bestDot = 0;
+            let bestAbsDot = 0;
 
-          axesB.forEach((axB, idxB) => {
-            if (pairedB.has(idxB)) return;
+            axesB.forEach((axB, idxB) => {
+              if (pairedB.has(idxB)) return;
 
-            if (Math.abs(axA.worldPosDir.dot(bondDir)) > 0.65) return;
-            if (Math.abs(axB.worldPosDir.dot(bondDir)) > 0.65) return;
+              if (Math.abs(axA.worldPosDir.dot(bondDir)) > 0.65) return;
+              if (Math.abs(axB.worldPosDir.dot(bondDir)) > 0.65) return;
 
-            const dot = axA.worldPosDir.dot(axB.worldPosDir);
-            if (Math.abs(dot) > bestAbsDot) {
-              bestAbsDot = Math.abs(dot);
-              bestDot = dot;
-              bestB = { ax: axB, idx: idxB };
+              const dot = axA.worldPosDir.dot(axB.worldPosDir);
+              if (Math.abs(dot) > bestAbsDot) {
+                bestAbsDot = Math.abs(dot);
+                bestDot = dot;
+                bestB = { ax: axB, idx: idxB };
+              }
+            });
+
+            if (bestB && bestAbsDot >= 0.65) {
+              pairedB.add(bestB.idx);
+              const label = `${axA.name}-${bestB.ax.name}`;
+
+              if (bestDot >= 0.65) {
+                // IN-PHASE OVERLAP (Red to Red, Blue to Blue) -> Bonding π
+                const avgNorm = axA.worldPosDir.clone().add(bestB.ax.worldPosDir).normalize();
+                const displayLabel = (selected.length <= 4 || bondingCount === 0) ? `π(${label}) Bonding` : '';
+                this.addBridge({
+                  atomAId: a.id,
+                  atomBId: b.id,
+                  type: 'bonding',
+                  normDir: avgNorm,
+                  labelText: displayLabel
+                });
+                bondingCount++;
+              } else {
+                // OUT-OF-PHASE OVERLAP (Red faces Blue) -> Antibonding π*
+                const displayLabel = (selected.length <= 4 || antibondingCount === 0) ? `π*(${label}) Antibonding` : '';
+                this.addBridge({
+                  atomAId: a.id,
+                  atomBId: b.id,
+                  type: 'antibonding',
+                  normDir: axA.worldPosDir.clone(),
+                  labelText: displayLabel
+                });
+                antibondingCount++;
+              }
             }
           });
-
-          if (bestB && bestAbsDot >= 0.65) {
-            pairedB.add(bestB.idx);
-            const label = `${axA.name}-${bestB.ax.name}`;
-
-            if (bestDot >= 0.65) {
-              // IN-PHASE OVERLAP (Red to Red, Blue to Blue) -> Bonding π
-              const avgNorm = axA.worldPosDir.clone().add(bestB.ax.worldPosDir).normalize();
-              this.addBridge({
-                atomAId: a.id,
-                atomBId: b.id,
-                type: 'bonding',
-                normDir: avgNorm,
-                labelText: `π(${label}) Bonding`
-              });
-              bondingCount++;
-            } else {
-              // OUT-OF-PHASE OVERLAP (Red faces Blue) -> Antibonding π*
-              this.addBridge({
-                atomAId: a.id,
-                atomBId: b.id,
-                type: 'antibonding',
-                normDir: axA.worldPosDir.clone(),
-                labelText: `π*(${label}) Antibonding`
-              });
-              antibondingCount++;
-            }
-          }
-        });
+        }
       }
+    } finally {
+      this._isContinuousChange = false;
     }
 
     if (bondingCount > 0 && antibondingCount === 0) {
@@ -560,7 +738,13 @@ export class MoleculeViewModel extends EventEmitter {
   loadPreset(presetKey) {
     const presetFn = PRESET_DEFINITIONS[presetKey];
     if (presetFn) {
-      presetFn(this);
+      this.pushUndoSnapshot();
+      this._isContinuousChange = true;
+      try {
+        presetFn(this);
+      } finally {
+        this._isContinuousChange = false;
+      }
       this.showToast(`Loaded ${presetKey.replace('preset-', '').replace('-', ' ').toUpperCase()}`, '🧪');
     }
   }
@@ -570,6 +754,7 @@ export class MoleculeViewModel extends EventEmitter {
   }
 
   clearAll() {
+    this.pushUndoSnapshot();
     this.model.clearAll();
     this.emit('moleculeReset');
     this._onStateMutated();

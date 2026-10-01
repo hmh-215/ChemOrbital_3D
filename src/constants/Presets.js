@@ -305,10 +305,10 @@ export const PRESET_DEFINITIONS = {
     vm.selectAtom(cAtoms[0].id);
   },
 
-  // Preset 7: Graphene Sheets (Multilayer Honeycomb Lattice)
+  // Preset 7: Graphene Sheets (Multilayer Honeycomb Lattice with 2D π-Conjugation)
   'preset-graphene': (vm) => {
     vm.clearAll();
-    vm.setCameraView(new THREE.Vector3(0, 5.5, 12.0), new THREE.Vector3(0, 0, 0));
+    vm.setCameraView(new THREE.Vector3(0, 6.0, 13.0), new THREE.Vector3(0, 0, 0));
 
     const r = 1.35;
     const dx = r * Math.sqrt(3);
@@ -330,28 +330,55 @@ export const PRESET_DEFINITIONS = {
       new THREE.Vector3(-dx - r * Math.cos(Math.PI/6), 0, -r * 0.5)
     ];
 
-    const layersY = [2.0, 0.0, -2.0];
+    // Interlayer spacing 2.8 units (avoids visual clipping of top/bottom pi-lobes)
+    const layersY = [2.8, 0.0, -2.8];
     const sheetAtoms = [];
 
     layersY.forEach((yVal, lIdx) => {
       const layer = [];
       template.forEach((pt, pIdx) => {
+        // In Graphene, each carbon is sp2 with unhybridized pz perpendicular to sheet (+Y/-Y)
         const atom = vm.addAtom({
           name: `C_L${lIdx+1}_${pIdx+1}`,
           color: '#334155',
-          radius: 0.30,
-          orbitalType: 'none',
+          radius: 0.32,
+          orbitalType: 'sp2',
+          rotation: new THREE.Euler(-Math.PI / 2, 0, 0, 'XYZ'),
           position: new THREE.Vector3(pt.x, yVal, pt.z)
         });
         layer.push(atom);
       });
       sheetAtoms.push(layer);
 
+      // C-C Covalent Bonds within the sheet
       for (let i = 0; i < layer.length; i++) {
         for (let j = i + 1; j < layer.length; j++) {
           const dist = layer[i].position.distanceTo(layer[j].position);
           if (dist > 0.5 && dist < r * 1.08) {
             vm.addBond(layer[i].id, layer[j].id);
+          }
+        }
+      }
+
+      // Align sp2 hybrid lobes in-plane with bonded neighbors
+      layer.forEach(atom => {
+        vm.alignAtomWithBondedNeighbors(atom);
+      });
+
+      // Delocalized 2D π-Bonding Honeycomb Bridges across the sheet
+      let layerBridgeCount = 0;
+      for (let i = 0; i < layer.length; i++) {
+        for (let j = i + 1; j < layer.length; j++) {
+          if (vm.model.hasBond(layer[i].id, layer[j].id)) {
+            const isCenterLabel = (lIdx === 1 && layerBridgeCount === 0);
+            vm.addBridge({
+              atomAId: layer[i].id,
+              atomBId: layer[j].id,
+              type: 'bonding',
+              normDir: new THREE.Vector3(0, 1, 0),
+              labelText: isCenterLabel ? 'Delocalized π-Sheet (Conjugated)' : ''
+            });
+            layerBridgeCount++;
           }
         }
       }

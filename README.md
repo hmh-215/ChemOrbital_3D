@@ -29,6 +29,8 @@
 
 | Action | Control / Shortcut |
 | :--- | :--- |
+| **Undo Last Change** | **Ctrl + Z** (or Cmd + Z, up to 3 reversals) or click **↩ Undo** in header |
+| **Redo Undone Change** | **Ctrl + Y** (or Ctrl + Shift + Z / Cmd + Y) or click **↪ Redo** in header |
 | **Select Atom** | **Left Click** on atom nucleus |
 | **Select All of Same Element** | **Shift + Double Click** on atom or roster badge (e.g. all H, all C, all O) |
 | **Toggle Selection (Atom-by-Atom)** | **Ctrl + Left Click** (or Cmd + Click) |

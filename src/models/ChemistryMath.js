@@ -215,15 +215,13 @@ export function calculateAttachment(parentAtom, localDir, childElem, childOrbita
     const rotMat = new THREE.Matrix4().makeBasis(xChild, yChild, zChild);
     childRotation = new THREE.Euler().setFromRotationMatrix(rotMat, 'XYZ');
   } else if (childOrbital !== 's') {
-    let u0 = new THREE.Vector3(1, 0, 0);
-    if (childOrbital === 'sp3') {
-      u0 = new THREE.Vector3(1, 1, 1).normalize();
-    } else if (childOrbital === 'dz2' || childOrbital === 'pz' || childOrbital === 'p' || childOrbital === 'sp3d' || childOrbital === 'sp3d2') {
-      u0 = new THREE.Vector3(0, 0, 1);
-    }
-
-    const quat = new THREE.Quaternion().setFromUnitVectors(u0, targetDir);
-    childRotation = new THREE.Euler().setFromQuaternion(quat, 'XYZ');
+    childRotation = calculateRepulsionOptimizedRotation({
+      newPos: attachPos,
+      orbitalType: childOrbital,
+      existingAtoms: [parentAtom],
+      bondedParentAtom: parentAtom,
+      bondDir: targetDir
+    });
   }
 
   return {
@@ -234,6 +232,262 @@ export function calculateAttachment(parentAtom, localDir, childElem, childOrbita
     childElem,
     childOrbital
   };
+}
+
+/**
+ * Returns an array of THREE.Vector3 local lobe unit vectors for an orbital type.
+ */
+export function getOrbitalLobeDirections(orbitalType) {
+  if (!orbitalType || orbitalType === 'none' || orbitalType === 's') {
+    return [];
+  }
+
+  if (orbitalType === 'px') {
+    return [new THREE.Vector3(1, 0, 0), new THREE.Vector3(-1, 0, 0)];
+  }
+  if (orbitalType === 'py') {
+    return [new THREE.Vector3(0, 1, 0), new THREE.Vector3(0, -1, 0)];
+  }
+  if (orbitalType === 'pz') {
+    return [new THREE.Vector3(0, 0, 1), new THREE.Vector3(0, 0, -1)];
+  }
+  if (orbitalType === 'p' || orbitalType === 'p_all') {
+    return [
+      new THREE.Vector3(1, 0, 0), new THREE.Vector3(-1, 0, 0),
+      new THREE.Vector3(0, 1, 0), new THREE.Vector3(0, -1, 0),
+      new THREE.Vector3(0, 0, 1), new THREE.Vector3(0, 0, -1)
+    ];
+  }
+
+  if (orbitalType === 'sp') {
+    return [
+      new THREE.Vector3(1, 0, 0), new THREE.Vector3(-1, 0, 0),
+      new THREE.Vector3(0, 1, 0), new THREE.Vector3(0, -1, 0),
+      new THREE.Vector3(0, 0, 1), new THREE.Vector3(0, 0, -1)
+    ];
+  }
+
+  if (orbitalType === 'sp2') {
+    return [
+      new THREE.Vector3(1, 0, 0),
+      new THREE.Vector3(Math.cos(2 * Math.PI / 3), Math.sin(2 * Math.PI / 3), 0),
+      new THREE.Vector3(Math.cos(4 * Math.PI / 3), Math.sin(4 * Math.PI / 3), 0),
+      new THREE.Vector3(0, 0, 1),
+      new THREE.Vector3(0, 0, -1)
+    ];
+  }
+
+  if (orbitalType === 'sp3') {
+    const s = 1 / Math.sqrt(3);
+    return [
+      new THREE.Vector3(s, s, s),
+      new THREE.Vector3(-s, -s, s),
+      new THREE.Vector3(-s, s, -s),
+      new THREE.Vector3(s, -s, -s)
+    ];
+  }
+
+  if (orbitalType === 'sp3d') {
+    return [
+      new THREE.Vector3(1, 0, 0),
+      new THREE.Vector3(Math.cos(2 * Math.PI / 3), Math.sin(2 * Math.PI / 3), 0),
+      new THREE.Vector3(Math.cos(4 * Math.PI / 3), Math.sin(4 * Math.PI / 3), 0),
+      new THREE.Vector3(0, 0, 1),
+      new THREE.Vector3(0, 0, -1)
+    ];
+  }
+
+  if (orbitalType === 'sp3d2') {
+    return [
+      new THREE.Vector3(1, 0, 0), new THREE.Vector3(-1, 0, 0),
+      new THREE.Vector3(0, 1, 0), new THREE.Vector3(0, -1, 0),
+      new THREE.Vector3(0, 0, 1), new THREE.Vector3(0, 0, -1)
+    ];
+  }
+
+  if (orbitalType === 'dxy') {
+    const s = Math.SQRT1_2;
+    return [
+      new THREE.Vector3(s, s, 0), new THREE.Vector3(-s, s, 0),
+      new THREE.Vector3(-s, -s, 0), new THREE.Vector3(s, -s, 0)
+    ];
+  }
+  if (orbitalType === 'dxz') {
+    const s = Math.SQRT1_2;
+    return [
+      new THREE.Vector3(s, 0, s), new THREE.Vector3(-s, 0, s),
+      new THREE.Vector3(-s, 0, -s), new THREE.Vector3(s, 0, -s)
+    ];
+  }
+  if (orbitalType === 'dyz') {
+    const s = Math.SQRT1_2;
+    return [
+      new THREE.Vector3(0, s, s), new THREE.Vector3(0, -s, s),
+      new THREE.Vector3(0, -s, -s), new THREE.Vector3(0, s, -s)
+    ];
+  }
+  if (orbitalType === 'dx2y2') {
+    return [
+      new THREE.Vector3(1, 0, 0), new THREE.Vector3(-1, 0, 0),
+      new THREE.Vector3(0, 1, 0), new THREE.Vector3(0, -1, 0)
+    ];
+  }
+  if (orbitalType === 'dz2') {
+    return [new THREE.Vector3(0, 0, 1), new THREE.Vector3(0, 0, -1)];
+  }
+
+  return [];
+}
+
+/**
+ * Calculates the optimal rotation for a new atom to maximize distances between
+ * its orbital electron lobes and neighboring atoms/lobes (VSEPR electron-pair repulsion minimization).
+ */
+export function calculateRepulsionOptimizedRotation({
+  newPos,
+  orbitalType,
+  existingAtoms = [],
+  bondedParentAtom = null,
+  bondDir = null
+}) {
+  if (!orbitalType || orbitalType === 'none' || orbitalType === 's') {
+    return new THREE.Euler(0, 0, 0, 'XYZ');
+  }
+
+  const localLobes = getOrbitalLobeDirections(orbitalType);
+  if (localLobes.length === 0) {
+    return new THREE.Euler(0, 0, 0, 'XYZ');
+  }
+
+  const L_LOBE = 1.35;
+
+  // Gather repulsive centers from existing atoms (their nucleus and lobe tips)
+  const repellers = [];
+  existingAtoms.forEach(other => {
+    if (!other || (bondedParentAtom && other.id === bondedParentAtom.id)) {
+      return;
+    }
+    const dist = other.position.distanceTo(newPos);
+    if (dist > 7.0) return; // Skip far atoms
+
+    // Nucleus position
+    repellers.push({ pos: other.position.clone(), weight: 1.2 });
+
+    // Other atom's lobe tips
+    const otherLobes = getOrbitalLobeDirections(other.orbitalType);
+    otherLobes.forEach(dir => {
+      const worldDir = dir.clone().applyEuler(other.rotation).normalize();
+      const tip = other.position.clone().add(worldDir.multiplyScalar(L_LOBE));
+      repellers.push({ pos: tip, weight: 1.8 });
+    });
+  });
+
+  // If there's a bonded parent atom, add its nucleus and lobe tips with high weight
+  if (bondedParentAtom) {
+    repellers.push({ pos: bondedParentAtom.position.clone(), weight: 2.2 });
+    const pLobes = getOrbitalLobeDirections(bondedParentAtom.orbitalType);
+    pLobes.forEach(dir => {
+      const worldDir = dir.clone().applyEuler(bondedParentAtom.rotation).normalize();
+      const tip = bondedParentAtom.position.clone().add(worldDir.multiplyScalar(L_LOBE));
+      repellers.push({ pos: tip, weight: 2.8 });
+    });
+  }
+
+  // Energy evaluation function: lower energy = lobes are farther from repellers
+  const evaluateRepulsion = (quat) => {
+    let energy = 0;
+    for (let i = 0; i < localLobes.length; i++) {
+      const lobeWorldDir = localLobes[i].clone().applyQuaternion(quat);
+      const lobeTip = newPos.clone().add(lobeWorldDir.multiplyScalar(L_LOBE));
+
+      for (let r = 0; r < repellers.length; r++) {
+        const dSq = lobeTip.distanceToSquared(repellers[r].pos);
+        energy += repellers[r].weight / Math.max(0.04, dSq);
+      }
+    }
+    return energy;
+  };
+
+  // Case 1: Bonded to a parent atom along bondDir
+  if (bondedParentAtom && bondDir) {
+    const targetDir = bondDir.clone().normalize(); // Points towards parent
+
+    // Identify primary local lobe pointing towards bond
+    let u0 = localLobes[0].clone();
+    if (orbitalType === 'sp3') {
+      u0 = new THREE.Vector3(1, 1, 1).normalize();
+    } else if (orbitalType === 'sp2' || orbitalType === 'sp') {
+      u0 = new THREE.Vector3(1, 0, 0);
+    } else if (orbitalType === 'sp3d' || orbitalType === 'sp3d2' || orbitalType === 'pz' || orbitalType === 'dz2') {
+      u0 = new THREE.Vector3(0, 0, 1);
+    }
+
+    // Base alignment quaternion from u0 to targetDir
+    const baseQuat = new THREE.Quaternion().setFromUnitVectors(u0, targetDir);
+
+    if (repellers.length === 0) {
+      return new THREE.Euler().setFromQuaternion(baseQuat, 'XYZ');
+    }
+
+    // Optimize dihedral angle phi around targetDir (72 steps = 5° resolution)
+    let minEnergy = Infinity;
+    let bestQuat = baseQuat.clone();
+
+    const nSteps = 72;
+    for (let s = 0; s < nSteps; s++) {
+      const phi = (s * 2 * Math.PI) / nSteps;
+      const rotAroundBond = new THREE.Quaternion().setFromAxisAngle(targetDir, phi);
+      const testQuat = rotAroundBond.clone().multiply(baseQuat);
+
+      const energy = evaluateRepulsion(testQuat);
+      if (energy < minEnergy) {
+        minEnergy = energy;
+        bestQuat = testQuat;
+      }
+    }
+
+    return new THREE.Euler().setFromQuaternion(bestQuat, 'XYZ');
+  }
+
+  // Case 2: Free placement or manual add near existing atoms
+  if (repellers.length === 0) {
+    return new THREE.Euler(0, 0, 0, 'XYZ');
+  }
+
+  let u0 = localLobes[0].clone();
+  if (orbitalType === 'sp3') u0 = new THREE.Vector3(1, 1, 1).normalize();
+  else if (orbitalType === 'sp2' || orbitalType === 'sp') u0 = new THREE.Vector3(1, 0, 0);
+  else if (orbitalType === 'sp3d' || orbitalType === 'sp3d2') u0 = new THREE.Vector3(0, 0, 1);
+
+  // Sample 24 spherical directions using Fibonacci spiral + 8 roll angles
+  let minEnergy = Infinity;
+  let bestQuat = new THREE.Quaternion();
+
+  const samples = 24;
+  const phiGolden = Math.PI * (3 - Math.sqrt(5));
+
+  for (let i = 0; i < samples; i++) {
+    const y = 1 - (i / (samples - 1)) * 2;
+    const radius = Math.sqrt(Math.max(0, 1 - y * y));
+    const theta = phiGolden * i;
+    const dir = new THREE.Vector3(Math.cos(theta) * radius, y, Math.sin(theta) * radius).normalize();
+
+    const alignQuat = new THREE.Quaternion().setFromUnitVectors(u0, dir);
+
+    for (let r = 0; r < 8; r++) {
+      const roll = (r * 2 * Math.PI) / 8;
+      const rollQuat = new THREE.Quaternion().setFromAxisAngle(dir, roll);
+      const testQuat = rollQuat.clone().multiply(alignQuat);
+
+      const energy = evaluateRepulsion(testQuat);
+      if (energy < minEnergy) {
+        minEnergy = energy;
+        bestQuat = testQuat;
+      }
+    }
+  }
+
+  return new THREE.Euler().setFromQuaternion(bestQuat, 'XYZ');
 }
 
 /**

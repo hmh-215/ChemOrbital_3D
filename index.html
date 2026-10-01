@@ -32,7 +32,9 @@
           <div class="brand-subtitle">Gen Chem 1 Orbitals</div>
         </div>
       </div>
-      <div style="display: flex; gap: 6px; align-items: center;">
+      <div style="display: flex; gap: 5px; align-items: center;">
+        <button class="btn" id="undo-btn" title="Undo change (Ctrl+Z)" style="font-size: 11px; padding: 5px 8px;" disabled>↩ Undo</button>
+        <button class="btn" id="redo-btn" title="Redo change (Ctrl+Y)" style="font-size: 11px; padding: 5px 8px;" disabled>↪ Redo</button>
         <button class="btn" id="theme-toggle-btn" title="Toggle Light / Dark Mode" style="font-size: 11px; padding: 5px 8px;">☀️ Light</button>
         <button class="btn" id="reset-cam-btn" title="Reset Camera View" style="font-size: 11px; padding: 5px 8px;">⟲ Center</button>
       </div>
@@ -602,6 +604,8 @@
 
     <!-- Bottom Control Helper Tips -->
     <div class="control-tips">
+      <span><span class="kbd">Ctrl+Z</span> Undo</span>
+      <span><span class="kbd">Ctrl+Y</span> Redo</span>
       <span><span class="kbd">Left Click</span> Select Atom</span>
       <span><span class="kbd">Shift + DblClick</span> Select All of Type</span>
       <span><span class="kbd">Ctrl + Click</span> Multi-Select</span>

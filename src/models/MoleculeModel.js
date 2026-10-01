@@ -176,4 +176,92 @@ export class MoleculeModel {
     this.selectedIds.clear();
     this.nextId = 1;
   }
+
+  // --- Snapshot Serialization & Restoration for Undo/Redo ---
+  getSnapshot() {
+    return {
+      atoms: this.atoms.map(a => ({
+        id: a.id,
+        name: a.name,
+        element: a.element,
+        color: a.color,
+        radius: a.radius,
+        orbitalType: a.orbitalType,
+        showArrangement: a.showArrangement,
+        showNodalPlanes: a.showNodalPlanes,
+        isSelected: a.isSelected,
+        position: { x: a.position.x, y: a.position.y, z: a.position.z },
+        rotation: { x: a.rotation.x, y: a.rotation.y, z: a.rotation.z, order: a.rotation.order }
+      })),
+      bonds: this.bonds.map(b => ({
+        id: b.id,
+        atomAId: b.atomAId,
+        atomBId: b.atomBId,
+        customColor: b.customColor
+      })),
+      bridges: this.bridges.map(br => ({
+        id: br.id,
+        type: br.type,
+        atomAId: br.atomAId,
+        atomBId: br.atomBId,
+        normDir: br.normDir ? { x: br.normDir.x, y: br.normDir.y, z: br.normDir.z } : null,
+        labelText: br.labelText,
+        centerPos: br.centerPos ? { x: br.centerPos.x, y: br.centerPos.y, z: br.centerPos.z } : null,
+        radius: br.radius,
+        zHeight: br.zHeight
+      })),
+      selectedIds: Array.from(this.selectedIds),
+      nextId: this.nextId
+    };
+  }
+
+  restoreSnapshot(snapshot) {
+    if (!snapshot) return;
+    this.clearAll();
+    this.nextId = snapshot.nextId || (snapshot.atoms ? snapshot.atoms.length + 1 : 1);
+
+    if (Array.isArray(snapshot.atoms)) {
+      snapshot.atoms.forEach(data => {
+        const atom = new AtomModel({
+          id: data.id,
+          name: data.name,
+          element: data.element,
+          color: data.color,
+          radius: data.radius,
+          orbitalType: data.orbitalType,
+          showArrangement: data.showArrangement,
+          showNodalPlanes: data.showNodalPlanes,
+          isSelected: data.isSelected,
+          position: new THREE.Vector3(data.position.x, data.position.y, data.position.z),
+          rotation: new THREE.Euler(data.rotation.x, data.rotation.y, data.rotation.z, data.rotation.order || 'XYZ')
+        });
+        this.atoms.push(atom);
+      });
+    }
+
+    if (Array.isArray(snapshot.bonds)) {
+      snapshot.bonds.forEach(data => {
+        this.bonds.push(new BondModel(data.atomAId, data.atomBId, data.customColor, data.id));
+      });
+    }
+
+    if (Array.isArray(snapshot.bridges)) {
+      snapshot.bridges.forEach(data => {
+        this.bridges.push(new BridgeModel({
+          id: data.id,
+          type: data.type,
+          atomAId: data.atomAId,
+          atomBId: data.atomBId,
+          normDir: data.normDir ? new THREE.Vector3(data.normDir.x, data.normDir.y, data.normDir.z) : new THREE.Vector3(0, 0, 1),
+          labelText: data.labelText,
+          centerPos: data.centerPos ? new THREE.Vector3(data.centerPos.x, data.centerPos.y, data.centerPos.z) : null,
+          radius: data.radius,
+          zHeight: data.zHeight
+        }));
+      });
+    }
+
+    this.selectedIds = new Set(snapshot.selectedIds || []);
+  }
 }
+

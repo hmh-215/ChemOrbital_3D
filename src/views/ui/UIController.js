@@ -71,6 +71,7 @@ export class UIController {
     this.vm.on('bridgeAdded', () => this.render());
     this.vm.on('bridgesCleared', () => this.render());
     this.vm.on('moleculeReset', () => this.render());
+    this.vm.on('moleculeRestored', () => this.render());
     this.vm.on('formulaUpdated', (info) => this.hud.updateFormula(info));
     this.vm.on('toast', ({ message, icon }) => this.hud.showToast(message, icon));
 
@@ -82,6 +83,19 @@ export class UIController {
       this.hud.updateTheme(isLight);
     });
 
+    this.vm.on('historyChanged', ({ canUndo, canRedo }) => {
+      const undoBtn = document.getElementById('undo-btn');
+      const redoBtn = document.getElementById('redo-btn');
+      if (undoBtn) {
+        undoBtn.disabled = !canUndo;
+        undoBtn.title = canUndo ? `Undo (Ctrl+Z) [${this.vm.undoStack.length}/3]` : 'Undo (Ctrl+Z)';
+      }
+      if (redoBtn) {
+        redoBtn.disabled = !canRedo;
+        redoBtn.title = canRedo ? `Redo (Ctrl+Y) [${this.vm.redoStack.length}/3]` : 'Redo (Ctrl+Y)';
+      }
+    });
+
     this.vm.on('quickBuildChanged', ({ elem, orbital }) => {
       this.sidebar.updateQuickBuildButton(elem, orbital);
       this.sidebar.setActiveQuickBuildButton(elem);
@@ -90,6 +104,24 @@ export class UIController {
   }
 
   _bindDOMEvents() {
+    // Undo / Redo buttons
+    const undoBtn = document.getElementById('undo-btn');
+    if (undoBtn) {
+      undoBtn.addEventListener('click', () => this.vm.undo());
+    }
+
+    const redoBtn = document.getElementById('redo-btn');
+    if (redoBtn) {
+      redoBtn.addEventListener('click', () => this.vm.redo());
+    }
+
+    // Sliders continuous change detection for undo grouping
+    document.querySelectorAll('input[type="range"]').forEach(slider => {
+      slider.addEventListener('pointerdown', () => this.vm.beginContinuousChange());
+      slider.addEventListener('pointerup', () => this.vm.endContinuousChange());
+      slider.addEventListener('change', () => this.vm.endContinuousChange());
+    });
+
     // Mode switcher buttons
     const modeOrbitBtn = document.getElementById('mode-orbit-btn');
     const modeBuildBtn = document.getElementById('mode-build-btn');
@@ -404,11 +436,33 @@ export class UIController {
       unhybridPCheck.addEventListener('change', (e) => this.vm.setShowUnhybridP(e.target.checked));
     }
 
-    // Keyboard Shortcuts (Delete/Backspace)
+    // Keyboard Shortcuts (Undo: Ctrl+Z, Redo: Ctrl+Y / Ctrl+Shift+Z, Delete/Backspace)
     window.addEventListener('keydown', (e) => {
+      const activeTag = document.activeElement ? document.activeElement.tagName.toLowerCase() : '';
+      const isTextInput = (activeTag === 'input' && document.activeElement.type === 'text') || activeTag === 'textarea';
+
+      const isCtrl = e.ctrlKey || e.metaKey;
+
+      if (isCtrl && !isTextInput) {
+        if (e.key === 'z' || e.key === 'Z') {
+          e.preventDefault();
+          if (e.shiftKey) {
+            this.vm.redo();
+          } else {
+            this.vm.undo();
+          }
+          return;
+        }
+
+        if (e.key === 'y' || e.key === 'Y') {
+          e.preventDefault();
+          this.vm.redo();
+          return;
+        }
+      }
+
       if (e.key === 'Delete' || e.key === 'Backspace') {
-        const activeTag = document.activeElement ? document.activeElement.tagName.toLowerCase() : '';
-        if (activeTag === 'input' || activeTag === 'textarea' || activeTag === 'select') {
+        if (isTextInput || activeTag === 'select') {
           return;
         }
         if (this.vm.selectedIds.size > 0) {
