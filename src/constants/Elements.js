@@ -18,7 +18,7 @@ export const ELEMENT_ORBITAL_OPTIONS = {
   C: ['sp3', 'sp2', 'sp'],
   O: ['sp3', 'sp2', 'sp'],
   N: ['sp3', 'sp2', 'sp'],
-  S: ['sp3d2', 'sp3', 'sp2', 'sp3d'],
+  S: ['sp3d2', 'sp3', 'sp2', 'sp3d', 'dxz', 'dxy', 'dyz'],
   P: ['sp3d', 'sp3'],
   F: ['pz'],
   Cl: ['pz']

@@ -100,6 +100,7 @@ export const PRESET_DEFINITIONS = {
       color: '#334155',
       radius: 0.42,
       orbitalType: 'sp',
+      rotation: new THREE.Euler(0, 0, 0, 'XYZ'),
       position: new THREE.Vector3(-1.1, 0, 0)
     });
 
@@ -108,6 +109,7 @@ export const PRESET_DEFINITIONS = {
       color: '#334155',
       radius: 0.42,
       orbitalType: 'sp',
+      rotation: new THREE.Euler(0, 0, 0, 'XYZ'),
       position: new THREE.Vector3(1.1, 0, 0)
     });
 
@@ -505,6 +507,7 @@ export const PRESET_DEFINITIONS = {
         color: '#475569',
         radius: 0.38,
         orbitalType: data.type,
+        rotation: new THREE.Euler(0, 0, 0, 'XYZ'),
         showNodalPlanes: true,
         position: new THREE.Vector3(data.x, 0, 0)
       });
@@ -512,5 +515,69 @@ export const PRESET_DEFINITIONS = {
     });
 
     vm.selectAtom(createdAtoms[2].id);
+  },
+
+  // Preset 12: Sulfur Dioxide (SO2) - pπ-pπ & pπ-dπ Resonance
+  'preset-so2': (vm) => {
+    vm.clearAll();
+    vm.setCameraView(new THREE.Vector3(0, 2.5, 8.5), new THREE.Vector3(0, 0, 0));
+
+    // Sulfur in center: sp2 hybridized with 1 lone pair pointing up (+Y)
+    // and 2 σ-bonds pointing towards bottom-left and bottom-right at 120°
+    const s = vm.addAtom({
+      name: 'S',
+      color: '#eab308',
+      radius: 0.48,
+      orbitalType: 'sp2',
+      rotation: new THREE.Euler(0, 0, Math.PI / 2, 'XYZ'),
+      position: new THREE.Vector3(0, 0.5, 0)
+    });
+
+    const dist = 1.95;
+    const sin60 = Math.sin(Math.PI / 3); // ~0.866
+    const cos60 = 0.5;
+
+    // O1 (Left Oxygen): sp2 hybridized with hybrid lobe pointing at S (angle +30° = π/6)
+    const o1 = vm.addAtom({
+      name: 'O1',
+      color: '#ef4444',
+      radius: 0.42,
+      orbitalType: 'sp2',
+      rotation: new THREE.Euler(0, 0, Math.PI / 6, 'XYZ'),
+      position: new THREE.Vector3(-dist * sin60, 0.5 - dist * cos60, 0)
+    });
+
+    // O2 (Right Oxygen): sp2 hybridized with hybrid lobe pointing at S (angle 150° = 5π/6)
+    const o2 = vm.addAtom({
+      name: 'O2',
+      color: '#ef4444',
+      radius: 0.42,
+      orbitalType: 'sp2',
+      rotation: new THREE.Euler(0, 0, 5 * Math.PI / 6, 'XYZ'),
+      position: new THREE.Vector3(dist * sin60, 0.5 - dist * cos60, 0)
+    });
+
+    vm.addBond(s.id, o1.id);
+    vm.addBond(s.id, o2.id);
+
+    // One bond features pπ - pπ overlap (perpendicular to molecular plane along Z)
+    vm.addBridge({
+      atomAId: s.id,
+      atomBId: o1.id,
+      type: 'bonding',
+      normDir: new THREE.Vector3(0, 0, 1),
+      labelText: 'π(pπ - pπ) Bonding'
+    });
+
+    // The other bond features pπ - dπ back-bonding resonance!
+    vm.addBridge({
+      atomAId: s.id,
+      atomBId: o2.id,
+      type: 'bonding',
+      normDir: new THREE.Vector3(0, 0, 1),
+      labelText: 'π(pπ - dπ) Resonance'
+    });
+
+    vm.selectAtom(s.id);
   }
 };

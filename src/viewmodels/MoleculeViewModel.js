@@ -12,7 +12,8 @@ import {
   alignAtomWithBondedNeighbors,
   calculateAttachment,
   calculateRepulsionOptimizedRotation,
-  computeMolecularFormula
+  computeMolecularFormula,
+  detectOrbitalOverlaps
 } from '../models/ChemistryMath.js';
 import {
   ELEMENT_DEFAULTS,
@@ -582,7 +583,7 @@ export class MoleculeViewModel extends EventEmitter {
   bridgeSelectedOrbitals() {
     const selected = this.model.getSelectedAtoms();
     if (selected.length < 2) {
-      alert('Please select 2 or more atoms (using Box Marquee or Ctrl+Click) to test orbital overlap & form a π or π* bond!');
+      alert('Please select 2 or more atoms (using Box Marquee or Ctrl+Click) to test orbital overlap & form π, p-d, or d-d bonds!');
       return;
     }
 
@@ -603,6 +604,8 @@ export class MoleculeViewModel extends EventEmitter {
 
     let bondingCount = 0;
     let antibondingCount = 0;
+    let deltaBondingCount = 0;
+    let deltaAntibondingCount = 0;
 
     try {
       for (let i = 0; i < selected.length; i++) {
@@ -610,71 +613,32 @@ export class MoleculeViewModel extends EventEmitter {
           const a = selected[i];
           const b = selected[j];
           const dist = a.position.distanceTo(b.position);
-          if (dist <= 0.4 || dist > 4.2) continue;
+          if (dist <= 0.4 || dist > 4.5) continue;
 
           const isBonded = this.model.hasBond(a.id, b.id);
           if (anyCovalentBondInSelection && !isBonded) {
             continue; // Skip non-bonded pairs (e.g. C1-C4 across benzene ring)
-          } else if (!anyCovalentBondInSelection && selected.length > 2 && dist > 2.2) {
+          } else if (!anyCovalentBondInSelection && selected.length > 2 && dist > 2.5) {
             continue;
           }
 
-          const bondDir = b.position.clone().sub(a.position).normalize();
-          const axesA = getAtomUnhybridAxes(a);
-          const axesB = getAtomUnhybridAxes(b);
-
-          if (axesA.length === 0 || axesB.length === 0) continue;
-
-          const pairedB = new Set();
-
-          axesA.forEach(axA => {
-            let bestB = null;
-            let bestDot = 0;
-            let bestAbsDot = 0;
-
-            axesB.forEach((axB, idxB) => {
-              if (pairedB.has(idxB)) return;
-
-              if (Math.abs(axA.worldPosDir.dot(bondDir)) > 0.65) return;
-              if (Math.abs(axB.worldPosDir.dot(bondDir)) > 0.65) return;
-
-              const dot = axA.worldPosDir.dot(axB.worldPosDir);
-              if (Math.abs(dot) > bestAbsDot) {
-                bestAbsDot = Math.abs(dot);
-                bestDot = dot;
-                bestB = { ax: axB, idx: idxB };
-              }
+          const overlaps = detectOrbitalOverlaps(a, b, isBonded);
+          overlaps.forEach(ov => {
+            const displayLabel = (selected.length <= 4 || (bondingCount + deltaBondingCount === 0)) ? ov.labelText : '';
+            this.addBridge({
+              atomAId: a.id,
+              atomBId: b.id,
+              type: ov.type,
+              normDir: ov.normDir,
+              labelText: displayLabel,
+              lobePairs: ov.lobePairs,
+              deltaNorms: ov.deltaNorms
             });
 
-            if (bestB && bestAbsDot >= 0.65) {
-              pairedB.add(bestB.idx);
-              const label = `${axA.name}-${bestB.ax.name}`;
-
-              if (bestDot >= 0.65) {
-                // IN-PHASE OVERLAP (Red to Red, Blue to Blue) -> Bonding π
-                const avgNorm = axA.worldPosDir.clone().add(bestB.ax.worldPosDir).normalize();
-                const displayLabel = (selected.length <= 4 || bondingCount === 0) ? `π(${label}) Bonding` : '';
-                this.addBridge({
-                  atomAId: a.id,
-                  atomBId: b.id,
-                  type: 'bonding',
-                  normDir: avgNorm,
-                  labelText: displayLabel
-                });
-                bondingCount++;
-              } else {
-                // OUT-OF-PHASE OVERLAP (Red faces Blue) -> Antibonding π*
-                const displayLabel = (selected.length <= 4 || antibondingCount === 0) ? `π*(${label}) Antibonding` : '';
-                this.addBridge({
-                  atomAId: a.id,
-                  atomBId: b.id,
-                  type: 'antibonding',
-                  normDir: axA.worldPosDir.clone(),
-                  labelText: displayLabel
-                });
-                antibondingCount++;
-              }
-            }
+            if (ov.type === 'bonding') bondingCount++;
+            else if (ov.type === 'antibonding') antibondingCount++;
+            else if (ov.type === 'delta_bonding') deltaBondingCount++;
+            else if (ov.type === 'delta_antibonding') deltaAntibondingCount++;
           });
         }
       }
@@ -682,14 +646,20 @@ export class MoleculeViewModel extends EventEmitter {
       this._isContinuousChange = false;
     }
 
-    if (bondingCount > 0 && antibondingCount === 0) {
-      this.showToast(`✨ Formed ${bondingCount} Bonding π-Bond(s)! In-phase connected into continuous π cloud.`, '✨');
-    } else if (antibondingCount > 0 && bondingCount === 0) {
-      this.showToast(`⚠️ Out-of-Phase Overlap: Formed ${antibondingCount} Antibonding π* with Vertical Nodal Plane!`, '⚠️');
-    } else if (bondingCount > 0 && antibondingCount > 0) {
-      this.showToast(`Formed ${bondingCount} Bonding π and ${antibondingCount} Antibonding π* states!`, 'ℹ️');
+    const totalBonds = bondingCount + deltaBondingCount;
+    const totalAnti = antibondingCount + deltaAntibondingCount;
+
+    if (totalBonds > 0 && totalAnti === 0) {
+      const desc = [];
+      if (bondingCount > 0) desc.push(`${bondingCount} π-Bond(s)`);
+      if (deltaBondingCount > 0) desc.push(`${deltaBondingCount} δ-Bond(s)`);
+      this.showToast(`✨ Formed ${desc.join(' & ')}! Overlaps connected.`, '✨');
+    } else if (totalAnti > 0 && totalBonds === 0) {
+      this.showToast(`⚠️ Out-of-Phase Overlap: Formed ${totalAnti} Antibonding (* / Nodal Plane)!`, '⚠️');
+    } else if (totalBonds > 0 && totalAnti > 0) {
+      this.showToast(`Formed ${totalBonds} Bonding and ${totalAnti} Antibonding states!`, 'ℹ️');
     } else {
-      alert('Could not form π-bonds. Ensure selected atoms are within 4.0 units, have p or hybrid orbitals (sp, sp²), and their p-axes are parallel (lateral to the bond).');
+      alert('Could not form π or δ bonds. Ensure selected atoms are within 4.5 units, have p or d orbitals (or sp/sp²), and their orbital lobes are aligned for lateral (π) or face-to-face (δ) overlap.');
     }
   }
 

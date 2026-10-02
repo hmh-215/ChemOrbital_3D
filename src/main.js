@@ -22,8 +22,11 @@ function init() {
   window.__app = {
     viewModel,
     threeScene,
-    uiController
+    uiController,
+    vm: viewModel
   };
+  window.app = window.__app;
+  window.vm = viewModel;
 
   // 3. Initialize default state: Atom with no orbital showing at first
   const defaultAtom = viewModel.addAtom({
@@ -52,6 +55,8 @@ function init() {
         viewModel.loadPreset('preset-sp3-ch4');
       } else if (presetParam === 'd-orbitals' || presetParam === 'd') {
         viewModel.loadPreset('preset-d-orbitals');
+      } else if (presetParam === 'so2' || presetParam === 'preset-so2') {
+        viewModel.loadPreset('preset-so2');
       } else if (presetParam === 'antibonding') {
         viewModel.loadPreset('preset-sp2-c2h4');
         viewModel.clearBridges();

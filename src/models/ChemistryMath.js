@@ -52,16 +52,393 @@ export function getAtomUnhybridAxes(atom) {
     axes.push({ local: new THREE.Vector3(0, 1, 0), name: 'py' });
   } else if (type === 'px') {
     axes.push({ local: new THREE.Vector3(1, 0, 0), name: 'px' });
-  } else if (type === 'p_all') {
+  } else if (type === 'p_all' || type === 'p') {
     axes.push({ local: new THREE.Vector3(0, 0, 1), name: 'pz' });
     axes.push({ local: new THREE.Vector3(0, 1, 0), name: 'py' });
     axes.push({ local: new THREE.Vector3(1, 0, 0), name: 'px' });
+  } else if (type === 'dxz') {
+    axes.push({ local: new THREE.Vector3(0, 0, 1), name: 'dxz_z' });
+    axes.push({ local: new THREE.Vector3(1, 0, 0), name: 'dxz_x' });
+  } else if (type === 'dyz') {
+    axes.push({ local: new THREE.Vector3(0, 0, 1), name: 'dyz_z' });
+    axes.push({ local: new THREE.Vector3(0, 1, 0), name: 'dyz_y' });
+  } else if (type === 'dxy') {
+    axes.push({ local: new THREE.Vector3(1, 0, 0), name: 'dxy_x' });
+    axes.push({ local: new THREE.Vector3(0, 1, 0), name: 'dxy_y' });
+  } else if (type === 'dx2y2') {
+    axes.push({ local: new THREE.Vector3(1, 0, 0), name: 'dx2y2_x' });
+    axes.push({ local: new THREE.Vector3(0, 1, 0), name: 'dx2y2_y' });
+  } else if (type === 'dz2') {
+    axes.push({ local: new THREE.Vector3(0, 0, 1), name: 'dz2_z' });
   }
   return axes.map(a => ({
     name: a.name,
     // World direction of positive (+/Red) lobe
     worldPosDir: a.local.clone().applyEuler(atom.rotation).normalize()
   }));
+}
+
+/**
+ * Extracts directional electron lobes with phases, peak positions, and orbital types
+ */
+export function getAtomOrbitalLobes(atom) {
+  if (!atom || !atom.orbitalType || atom.orbitalType === 'none' || atom.orbitalType === 's') {
+    return [];
+  }
+
+  const type = atom.orbitalType;
+  const rot = atom.rotation;
+  const pAtom = atom.position;
+  const hLobe = 1.05; // peak distance of lobe center
+
+  const lobes = [];
+
+  const addLobe = (localDir, phase, name, kind) => {
+    const dirNorm = localDir.clone().normalize();
+    const worldDir = dirNorm.clone().applyEuler(rot).normalize();
+    const worldPeak = pAtom.clone().add(worldDir.clone().multiplyScalar(hLobe));
+    lobes.push({
+      localDir: dirNorm,
+      worldDir,
+      worldPeak,
+      phase, // +1 (red) or -1 (blue)
+      name,
+      kind, // 'p', 'd', 'hybrid'
+      orbitalType: type
+    });
+  };
+
+  // p-orbitals
+  if (type === 'px') {
+    addLobe(new THREE.Vector3( 1, 0, 0),  1, 'px+', 'p');
+    addLobe(new THREE.Vector3(-1, 0, 0), -1, 'px-', 'p');
+  } else if (type === 'py') {
+    addLobe(new THREE.Vector3(0,  1, 0),  1, 'py+', 'p');
+    addLobe(new THREE.Vector3(0, -1, 0), -1, 'py-', 'p');
+  } else if (type === 'pz') {
+    addLobe(new THREE.Vector3(0, 0,  1),  1, 'pz+', 'p');
+    addLobe(new THREE.Vector3(0, 0, -1), -1, 'pz-', 'p');
+  } else if (type === 'p' || type === 'p_all') {
+    addLobe(new THREE.Vector3( 1, 0, 0),  1, 'px+', 'p');
+    addLobe(new THREE.Vector3(-1, 0, 0), -1, 'px-', 'p');
+    addLobe(new THREE.Vector3(0,  1, 0),  1, 'py+', 'p');
+    addLobe(new THREE.Vector3(0, -1, 0), -1, 'py-', 'p');
+    addLobe(new THREE.Vector3(0, 0,  1),  1, 'pz+', 'p');
+    addLobe(new THREE.Vector3(0, 0, -1), -1, 'pz-', 'p');
+  } else if (type === 'sp') {
+    // Unhybridized pz and py
+    addLobe(new THREE.Vector3(0, 0,  1),  1, 'pz+', 'p');
+    addLobe(new THREE.Vector3(0, 0, -1), -1, 'pz-', 'p');
+    addLobe(new THREE.Vector3(0,  1, 0),  1, 'py+', 'p');
+    addLobe(new THREE.Vector3(0, -1, 0), -1, 'py-', 'p');
+  } else if (type === 'sp2') {
+    // Unhybridized pz
+    addLobe(new THREE.Vector3(0, 0,  1),  1, 'pz+', 'p');
+    addLobe(new THREE.Vector3(0, 0, -1), -1, 'pz-', 'p');
+  }
+  // d-orbitals
+  else if (type === 'dxy') {
+    const s = Math.SQRT1_2;
+    addLobe(new THREE.Vector3( s,  s, 0),  1, 'dxy1+', 'd');
+    addLobe(new THREE.Vector3(-s, -s, 0),  1, 'dxy2+', 'd');
+    addLobe(new THREE.Vector3(-s,  s, 0), -1, 'dxy3-', 'd');
+    addLobe(new THREE.Vector3( s, -s, 0), -1, 'dxy4-', 'd');
+  } else if (type === 'dxz') {
+    const s = Math.SQRT1_2;
+    addLobe(new THREE.Vector3( s, 0,  s),  1, 'dxz1+', 'd');
+    addLobe(new THREE.Vector3(-s, 0, -s),  1, 'dxz2+', 'd');
+    addLobe(new THREE.Vector3(-s, 0,  s), -1, 'dxz3-', 'd');
+    addLobe(new THREE.Vector3( s, 0, -s), -1, 'dxz4-', 'd');
+  } else if (type === 'dyz') {
+    const s = Math.SQRT1_2;
+    addLobe(new THREE.Vector3(0,  s,  s),  1, 'dyz1+', 'd');
+    addLobe(new THREE.Vector3(0, -s, -s),  1, 'dyz2+', 'd');
+    addLobe(new THREE.Vector3(0, -s,  s), -1, 'dyz3-', 'd');
+    addLobe(new THREE.Vector3(0,  s, -s), -1, 'dyz4-', 'd');
+  } else if (type === 'dx2y2') {
+    addLobe(new THREE.Vector3( 1,  0, 0),  1, 'dx2y2_1+', 'd');
+    addLobe(new THREE.Vector3(-1,  0, 0),  1, 'dx2y2_2+', 'd');
+    addLobe(new THREE.Vector3( 0,  1, 0), -1, 'dx2y2_3-', 'd');
+    addLobe(new THREE.Vector3( 0, -1, 0), -1, 'dx2y2_4-', 'd');
+  } else if (type === 'dz2') {
+    addLobe(new THREE.Vector3(0, 0,  1),  1, 'dz2_top+', 'd');
+    addLobe(new THREE.Vector3(0, 0, -1),  1, 'dz2_bot+', 'd');
+  }
+
+  return lobes;
+}
+
+/**
+ * Detects orbital overlaps between two atoms:
+ * - p - p (lateral π bonding & π* antibonding)
+ * - p - d / d - p (lateral pπ - dπ bonding & antibonding)
+ * - d - d (face-to-face δ bonding & lateral π bonding)
+ */
+export function detectOrbitalOverlaps(atomA, atomB, isBonded = false) {
+  if (!atomA || !atomB) return [];
+  const dist = atomA.position.distanceTo(atomB.position);
+  if (dist <= 0.4 || dist > 4.5) return [];
+
+  const lobesA = getAtomOrbitalLobes(atomA);
+  const lobesB = getAtomOrbitalLobes(atomB);
+  if (lobesA.length === 0 || lobesB.length === 0) return [];
+
+  const bondDir = atomB.position.clone().sub(atomA.position).normalize();
+  const overlaps = [];
+
+  const hasDA = lobesA.some(l => l.kind === 'd');
+  const hasDB = lobesB.some(l => l.kind === 'd');
+  const hasPA = lobesA.some(l => l.kind === 'p');
+  const hasPB = lobesB.some(l => l.kind === 'p');
+
+  const formatOrbName = (type) => {
+    const map = {
+      sp: 'sp', sp2: 'sp²', sp3: 'sp³',
+      px: 'px', py: 'py', pz: 'pz', p_all: 'p',
+      dxy: 'dxy', dxz: 'dxz', dyz: 'dyz', dx2y2: 'dx²-y²', dz2: 'dz²'
+    };
+    return map[type] || type;
+  };
+
+  // -------------------------------------------------------------
+  // Case 1: p - p Overlap (standard lateral π-bonding / antibonding)
+  // -------------------------------------------------------------
+  if (hasPA && hasPB && !hasDA && !hasDB) {
+    const pAxesA = getAtomUnhybridAxes(atomA);
+    const pAxesB = getAtomUnhybridAxes(atomB);
+    const pairedB = new Set();
+
+    pAxesA.forEach(axA => {
+      let bestB = null;
+      let bestDot = 0;
+      let bestAbsDot = 0;
+
+      pAxesB.forEach((axB, idxB) => {
+        if (pairedB.has(idxB)) return;
+        if (Math.abs(axA.worldPosDir.dot(bondDir)) > 0.65) return;
+        if (Math.abs(axB.worldPosDir.dot(bondDir)) > 0.65) return;
+
+        const dot = axA.worldPosDir.dot(axB.worldPosDir);
+        if (Math.abs(dot) > bestAbsDot) {
+          bestAbsDot = Math.abs(dot);
+          bestDot = dot;
+          bestB = { ax: axB, idx: idxB };
+        }
+      });
+
+      if (bestB && bestAbsDot >= 0.65) {
+        pairedB.add(bestB.idx);
+        const nameA = axA.name;
+        const nameB = bestB.ax.name;
+        const labelBase = `${nameA} - ${nameB}`;
+
+        const topA = atomA.position.clone().add(axA.worldPosDir.clone().multiplyScalar(1.05));
+        const botA = atomA.position.clone().sub(axA.worldPosDir.clone().multiplyScalar(1.05));
+
+        const topB = atomB.position.clone().add(bestB.ax.worldPosDir.clone().multiplyScalar(1.05));
+        const botB = atomB.position.clone().sub(bestB.ax.worldPosDir.clone().multiplyScalar(1.05));
+
+        if (bestDot >= 0.65) {
+          const avgNorm = axA.worldPosDir.clone().add(bestB.ax.worldPosDir).normalize();
+          overlaps.push({
+            type: 'bonding',
+            overlapType: 'p-p',
+            normDir: avgNorm,
+            labelText: `π(${labelBase}) Bonding`,
+            lobePairs: [
+              { posA: topA, posB: topB, phase: 1 },
+              { posA: botA, posB: botB, phase: -1 }
+            ]
+          });
+        } else {
+          overlaps.push({
+            type: 'antibonding',
+            overlapType: 'p-p',
+            normDir: axA.worldPosDir.clone(),
+            labelText: `π*(${labelBase}) Antibonding`,
+            lobePairs: [
+              { posA: topA, posB: botB, phase: 1 },
+              { posA: botA, posB: topB, phase: -1 }
+            ]
+          });
+        }
+      }
+    });
+  }
+
+  // -------------------------------------------------------------
+  // Case 2: p - d Overlap (lateral pπ - dπ bonding / antibonding)
+  // -------------------------------------------------------------
+  else if ((hasDA && hasPB) || (hasPA && hasDB)) {
+    const dAtom = hasDA ? atomA : atomB;
+    const pAtom = hasDA ? atomB : atomA;
+    const dLobes = hasDA ? lobesA : lobesB;
+    const pLobes = hasDA ? lobesB : lobesA;
+    const uDP = pAtom.position.clone().sub(dAtom.position).normalize();
+
+    // In d-orbital: identify forward-facing lobes pointing towards pAtom
+    const forwardDLobes = dLobes.filter(l => l.worldDir.dot(uDP) > 0.15);
+
+    const posDLobe = forwardDLobes.find(l => l.phase === 1);
+    const negDLobe = forwardDLobes.find(l => l.phase === -1);
+
+    if (posDLobe && negDLobe) {
+      const tPosD = posDLobe.worldDir.clone().sub(uDP.clone().multiplyScalar(posDLobe.worldDir.dot(uDP))).normalize();
+
+      const lateralPLobes = pLobes.filter(l => Math.abs(l.worldDir.dot(uDP)) < 0.65);
+      const posPLobe = lateralPLobes.find(l => l.phase === 1);
+      const negPLobe = lateralPLobes.find(l => l.phase === -1);
+
+      if (posPLobe && negPLobe) {
+        const dot = tPosD.dot(posPLobe.worldDir);
+        if (Math.abs(dot) >= 0.55) {
+          const dLabel = formatOrbName(dAtom.orbitalType);
+          const pLabel = formatOrbName(pAtom.orbitalType);
+
+          if (dot >= 0.55) {
+            overlaps.push({
+              type: 'bonding',
+              overlapType: 'p-d',
+              normDir: tPosD,
+              labelText: `π(${dLabel} - ${pLabel}) Bonding`,
+              lobePairs: hasDA ? [
+                { posA: posDLobe.worldPeak, posB: posPLobe.worldPeak, phase: 1 },
+                { posA: negDLobe.worldPeak, posB: negPLobe.worldPeak, phase: -1 }
+              ] : [
+                { posA: posPLobe.worldPeak, posB: posDLobe.worldPeak, phase: 1 },
+                { posA: negPLobe.worldPeak, posB: negDLobe.worldPeak, phase: -1 }
+              ]
+            });
+          } else {
+            overlaps.push({
+              type: 'antibonding',
+              overlapType: 'p-d',
+              normDir: tPosD,
+              labelText: `π*(${dLabel} - ${pLabel}) Antibonding`,
+              lobePairs: hasDA ? [
+                { posA: posDLobe.worldPeak, posB: negPLobe.worldPeak, phase: 1 },
+                { posA: negDLobe.worldPeak, posB: posPLobe.worldPeak, phase: -1 }
+              ] : [
+                { posA: posPLobe.worldPeak, posB: negDLobe.worldPeak, phase: 1 },
+                { posA: negPLobe.worldPeak, posB: posDLobe.worldPeak, phase: -1 }
+              ]
+            });
+          }
+        }
+      }
+    }
+  }
+
+  // -------------------------------------------------------------
+  // Case 3: d - d Overlap (face-to-face δ or lateral π)
+  // -------------------------------------------------------------
+  else if (hasDA && hasDB) {
+    const getDNormal = (atom) => {
+      const type = atom.orbitalType;
+      let localNorm = new THREE.Vector3(0, 0, 1);
+      if (type === 'dxz') localNorm = new THREE.Vector3(0, 1, 0);
+      else if (type === 'dyz') localNorm = new THREE.Vector3(1, 0, 0);
+      return localNorm.applyEuler(atom.rotation).normalize();
+    };
+
+    const normA = getDNormal(atomA);
+    const normB = getDNormal(atomB);
+
+    const isFaceToFace = Math.abs(bondDir.dot(normA)) >= 0.65 && Math.abs(bondDir.dot(normB)) >= 0.65 && Math.abs(normA.dot(normB)) >= 0.65;
+
+    const dLabelA = formatOrbName(atomA.orbitalType);
+    const dLabelB = formatOrbName(atomB.orbitalType);
+
+    if (isFaceToFace) {
+      const matchedPairs = [];
+      let inPhaseCount = 0;
+      let outPhaseCount = 0;
+
+      lobesA.forEach(lA => {
+        let bestB = null;
+        let bestDot = -1;
+        lobesB.forEach(lB => {
+          const dot = lA.worldDir.dot(lB.worldDir);
+          if (dot > bestDot) {
+            bestDot = dot;
+            bestB = lB;
+          }
+        });
+
+        if (bestB && bestDot >= 0.60) {
+          matchedPairs.push({
+            posA: lA.worldPeak,
+            posB: bestB.worldPeak,
+            phase: lA.phase
+          });
+          if (lA.phase === bestB.phase) inPhaseCount++;
+          else outPhaseCount++;
+        }
+      });
+
+      if (matchedPairs.length >= 4) {
+        if (inPhaseCount >= 3) {
+          overlaps.push({
+            type: 'delta_bonding',
+            overlapType: 'd-d',
+            normDir: normA,
+            labelText: `δ(${dLabelA} - ${dLabelB}) Bonding`,
+            lobePairs: matchedPairs
+          });
+        } else if (outPhaseCount >= 3) {
+          overlaps.push({
+            type: 'delta_antibonding',
+            overlapType: 'd-d',
+            normDir: normA,
+            labelText: `δ*(${dLabelA} - ${dLabelB}) Antibonding`,
+            lobePairs: matchedPairs
+          });
+        }
+      }
+    } else {
+      const fwdA = lobesA.filter(l => l.worldDir.dot(bondDir) > 0.15);
+      const fwdB = lobesB.filter(l => l.worldDir.dot(bondDir.clone().negate()) > 0.15);
+
+      const posA = fwdA.find(l => l.phase === 1);
+      const negA = fwdA.find(l => l.phase === -1);
+      const posB = fwdB.find(l => l.phase === 1);
+      const negB = fwdB.find(l => l.phase === -1);
+
+      if (posA && negA && posB && negB) {
+        const tPosA = posA.worldDir.clone().sub(bondDir.clone().multiplyScalar(posA.worldDir.dot(bondDir))).normalize();
+        const tPosB = posB.worldDir.clone().sub(bondDir.clone().multiplyScalar(posB.worldDir.dot(bondDir))).normalize();
+
+        const dot = tPosA.dot(tPosB);
+        if (Math.abs(dot) >= 0.55) {
+          if (dot >= 0.55) {
+            overlaps.push({
+              type: 'bonding',
+              overlapType: 'd-d',
+              normDir: tPosA,
+              labelText: `π(${dLabelA} - ${dLabelB}) Bonding`,
+              lobePairs: [
+                { posA: posA.worldPeak, posB: posB.worldPeak, phase: 1 },
+                { posA: negA.worldPeak, posB: negB.worldPeak, phase: -1 }
+              ]
+            });
+          } else {
+            overlaps.push({
+              type: 'antibonding',
+              overlapType: 'd-d',
+              normDir: tPosA,
+              labelText: `π*(${dLabelA} - ${dLabelB}) Antibonding`,
+              lobePairs: [
+                { posA: posA.worldPeak, posB: negB.worldPeak, phase: 1 },
+                { posA: negA.worldPeak, posB: posB.worldPeak, phase: -1 }
+              ]
+            });
+          }
+        }
+      }
+    }
+  }
+
+  return overlaps;
 }
 
 /**
@@ -454,6 +831,61 @@ export function calculateRepulsionOptimizedRotation({
     return new THREE.Euler(0, 0, 0, 'XYZ');
   }
 
+  // Check if there is a close neighbor atom
+  let closestNeighbor = null;
+  let minNeighborDist = Infinity;
+  existingAtoms.forEach(other => {
+    if (!other) return;
+    const d = other.position.distanceTo(newPos);
+    if (d > 0.1 && d < 5.5 && d < minNeighborDist) {
+      minNeighborDist = d;
+      closestNeighbor = other;
+    }
+  });
+
+  if (closestNeighbor && (orbitalType === 'sp' || orbitalType === 'sp2')) {
+    const vToNeighbor = closestNeighbor.position.clone().sub(newPos).normalize();
+
+    // Query neighbor's unhybridized or p axes
+    const neighborAxes = getAtomUnhybridAxes(closestNeighbor);
+    let pRef = neighborAxes.length > 0 ? neighborAxes[0].worldPosDir.clone() : null;
+
+    if (orbitalType === 'sp') {
+      // Linear hybrid axis along X
+      const xLocal = vToNeighbor.clone();
+      let zLocal = null;
+      if (pRef) {
+        zLocal = pRef.clone().sub(xLocal.clone().multiplyScalar(pRef.dot(xLocal)));
+      }
+      if (!zLocal || zLocal.lengthSq() < 1e-4) {
+        const fallback = Math.abs(xLocal.z) < 0.9 ? new THREE.Vector3(0, 0, 1) : new THREE.Vector3(0, 1, 0);
+        zLocal = fallback.sub(xLocal.clone().multiplyScalar(fallback.dot(xLocal))).normalize();
+      } else {
+        zLocal.normalize();
+      }
+      const yLocal = new THREE.Vector3().crossVectors(zLocal, xLocal).normalize();
+      zLocal = new THREE.Vector3().crossVectors(xLocal, yLocal).normalize();
+
+      const rotMat = new THREE.Matrix4().makeBasis(xLocal, yLocal, zLocal);
+      return new THREE.Euler().setFromRotationMatrix(rotMat, 'XYZ');
+    } else if (orbitalType === 'sp2') {
+      // Trigonal planar: pz is normal to plane
+      let zLocal = pRef ? pRef.clone() : (Math.abs(vToNeighbor.z) < 0.9 ? new THREE.Vector3(0, 0, 1) : new THREE.Vector3(0, 1, 0));
+      let xLocal = vToNeighbor.clone().sub(zLocal.clone().multiplyScalar(vToNeighbor.dot(zLocal)));
+      if (xLocal.lengthSq() < 1e-4) {
+        const fallback = Math.abs(zLocal.x) < 0.9 ? new THREE.Vector3(1, 0, 0) : new THREE.Vector3(0, 1, 0);
+        xLocal = fallback.sub(zLocal.clone().multiplyScalar(fallback.dot(zLocal))).normalize();
+      } else {
+        xLocal.normalize();
+      }
+      const yLocal = new THREE.Vector3().crossVectors(zLocal, xLocal).normalize();
+      zLocal = new THREE.Vector3().crossVectors(xLocal, yLocal).normalize();
+
+      const rotMat = new THREE.Matrix4().makeBasis(xLocal, yLocal, zLocal);
+      return new THREE.Euler().setFromRotationMatrix(rotMat, 'XYZ');
+    }
+  }
+
   let u0 = localLobes[0].clone();
   if (orbitalType === 'sp3') u0 = new THREE.Vector3(1, 1, 1).normalize();
   else if (orbitalType === 'sp2' || orbitalType === 'sp') u0 = new THREE.Vector3(1, 0, 0);
@@ -583,7 +1015,17 @@ export function computeMolecularFormula(atoms = [], bonds = [], bridges = []) {
     return { formula: 'NO₂', title: 'Nitrogen Dioxide (Radical / Conjugated π)', atomCountText };
   }
 
-  // 12. Graphene Sheet / Carbon Allotrope
+  // 12. Sulfur Dioxide (SO2)
+  if (totalElems === 2 && numS === 1 && numO === 2) {
+    return { formula: 'SO₂', title: 'Sulfur Dioxide (pπ–dπ & pπ–pπ Resonance)', atomCountText };
+  }
+
+  // 13. Carbon Dioxide (CO2)
+  if (totalElems === 2 && numC === 1 && numO === 2) {
+    return { formula: 'CO₂', title: 'Carbon Dioxide (Linear • 2π-Bonds)', atomCountText };
+  }
+
+  // 14. Graphene Sheet / Carbon Allotrope
   if (totalElems === 1 && numC >= 10) {
     return { formula: `C${sub(numC)}`, title: 'Graphene (sp² Honeycomb Sheet)', atomCountText };
   }

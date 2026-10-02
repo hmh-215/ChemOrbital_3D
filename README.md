@@ -79,7 +79,8 @@ The interface is structured into dedicated panels and interaction modes to keep 
 One-click access to standard textbook molecules and advanced carbon conformations with pre-rendered covalent bonds and orbitals:
 - **$CH_4$ (Methane):** Central $sp^3$ Carbon with 4 Hydrogens showing regular tetrahedral $109.5^\circ$ geometry and calibrated $1s$ spheres (Formula: `CH₄`).
 - **$C_2H_4$ (Ethylene):** Planar $sp^2$ backbone with parallel $p_z$ orbitals connected by a volumetric $\pi$-bond electron cloud; all four $\text{C}-\text{H}$ covalent bonds pass directly through the axes of the $sp^2$ lobes at $120^\circ$ (Formula: `CH₂=CH₂`).
-- **$C_2H_2$ (Acetylene):** Linear $sp$ backbone ($180^\circ$) with two mutually perpendicular in-phase $\pi$ bonds ($\pi_{py}$ and $\pi_{pz}$) (Formula: `HC≡CH`).
+- **$C_2H_2$ (Acetylene):** Linear $sp$ backbone ($180^\circ$) with two mutually perpendicular in-phase $\pi$ bonds ($\pi_{py}$ and $\pi_{pz}$); hybrid lobes and $\pi$-tubes lie strictly along Cartesian axes (Formula: `HC≡CH`).
+- **$\text{SO}_2$ (Sulfur Dioxide):** Bent $120^\circ$ geometry ($sp^2$) featuring simultaneous $p\pi - p\pi$ and $p\pi - d\pi$ resonance back-bonding bridges (Formula: `SO₂`).
 - **Benzene ($C_6H_6$):** Planar $sp^2$ hexagonal ring with 3D covalent C-C & C-H bonds, plus continuous delocalized toroidal $\pi$-electron clouds above and below the carbon ring (Formula: `C₆H₆`).
 - **Cyclohexane (Chair & Boat):** Visualizes the strain-free $109.5^\circ$ chair conformation (axial vs. equatorial C-H bonds) and the higher-energy boat conformation showing flagpole steric clash (Formula: `C₆H₁₂`).
 - **Graphene (3-Layer Honeycomb):** Multilayer hexagonal $sp^2$ lattice with in-plane covalent bonds and vertical dashed interlayer van der Waals coupling lines.
@@ -168,15 +169,16 @@ A real-time floating card at the bottom-right corner of the canvas dynamically c
   - **Batch Nucleus Sizing & Color:** Scales radii or changes colors of all selected atoms simultaneously.
   - **Batch Hybridization & Outlines:** Apply orbital types, geometric envelopes, or nodal planes in batch.
 
-#### D. ⚡ Phase-Accurate π / π* Overlap & Bridging
-- Connects parallel $p$ or hybrid unhybridized lobes between adjacent bonded atoms:
+#### D. ⚡ Phase-Accurate π, p–d, and d–d Overlap & Bridging
+- Connects parallel $p$, $d$, or hybrid unhybridized lobes between adjacent bonded atoms:
   - **Positive Phase ($+$):** Red (`#ef4444`)
   - **Negative Phase ($-$):** Blue (`#3b82f6`)
-- **`🔄 Align p` Button:** Automatically aligns unhybridized $p$-orbitals of all selected atoms parallel and in-phase.
+- **`🔄 Align p` Button:** Automatically aligns unhybridized $p$-orbitals and interaction planes of all selected atoms parallel and in-phase.
 - **`🔗 Form π-Bond Overlap` Button:**
-  - **Physically Realistic Sigma-Bond Adjacency Check:** Only adjacent atoms connected by a covalent $\sigma$-bond form $\pi$-bridges. In Benzene, this restricts bridges strictly to the 6 adjacent perimeter bonds, completely preventing crossing chords across the interior of rings.
-  - **Constructive Overlap (Same phases face each other):** Red-to-Red and Blue-to-Blue connect into continuous volumetric bonding $\pi$-electron clouds with green central axes passing through the demi-sphere lobe centers.
-  - **Destructive Overlap (Opposite phases face each other):** Red faces Blue $\to$ an **Antibonding $\pi^*$ state** is formed with a **vertical planar nodal sheet** midway between the nuclei where electron probability $\psi^2 = 0$.
+  - **Physically Realistic Sigma-Bond Adjacency Check:** Only adjacent atoms connected by a covalent $\sigma$-bond form $\pi$-bridges (or adjacent pairs in non-bonded sets), completely preventing unphysical cross-ring chord crossings.
+  - **$p - p$ Overlap:** Red-to-Red and Blue-to-Blue connect into continuous volumetric bonding $\pi$-electron clouds (`π(p - p) Bonding`). Opposite phases form an **Antibonding $\pi^*$ state** with a **vertical planar nodal sheet** midway between the nuclei where $\psi^2 = 0$.
+  - **$p - d$ Overlap ($p\pi - d\pi$):** Lateral overlap between $d$-orbitals (e.g. $d_{xz}, d_{yz}, d_{xy}$) and $p$-orbitals (or unhybridized $sp/sp^2$ lobes) with curves anchored directly on lobe peaks (`π(d - p) Bonding` / `π*(d - p) Antibonding`). Models resonance in hypervalent species like $\text{SO}_2$.
+  - **$d - d$ Overlap:** Detects face-to-face 4-lobe overlap forming quadruplet $\delta$-bond clouds (`δ(d - d) Bonding` / `δ*(d - d) Antibonding`) and in-plane lateral $\pi(d - d)$ overlaps.
 
 </details>
 

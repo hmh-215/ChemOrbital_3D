@@ -206,6 +206,15 @@ export class MoleculeModel {
         atomBId: br.atomBId,
         normDir: br.normDir ? { x: br.normDir.x, y: br.normDir.y, z: br.normDir.z } : null,
         labelText: br.labelText,
+        lobePairs: br.lobePairs ? br.lobePairs.map(lp => ({
+          posA: { x: lp.posA.x, y: lp.posA.y, z: lp.posA.z },
+          posB: { x: lp.posB.x, y: lp.posB.y, z: lp.posB.z },
+          phase: lp.phase
+        })) : null,
+        deltaNorms: br.deltaNorms ? {
+          norm1: { x: br.deltaNorms.norm1.x, y: br.deltaNorms.norm1.y, z: br.deltaNorms.norm1.z },
+          norm2: { x: br.deltaNorms.norm2.x, y: br.deltaNorms.norm2.y, z: br.deltaNorms.norm2.z }
+        } : null,
         centerPos: br.centerPos ? { x: br.centerPos.x, y: br.centerPos.y, z: br.centerPos.z } : null,
         radius: br.radius,
         zHeight: br.zHeight
@@ -254,6 +263,15 @@ export class MoleculeModel {
           atomBId: data.atomBId,
           normDir: data.normDir ? new THREE.Vector3(data.normDir.x, data.normDir.y, data.normDir.z) : new THREE.Vector3(0, 0, 1),
           labelText: data.labelText,
+          lobePairs: data.lobePairs ? data.lobePairs.map(lp => ({
+            posA: new THREE.Vector3(lp.posA.x, lp.posA.y, lp.posA.z),
+            posB: new THREE.Vector3(lp.posB.x, lp.posB.y, lp.posB.z),
+            phase: lp.phase
+          })) : null,
+          deltaNorms: data.deltaNorms ? {
+            norm1: new THREE.Vector3(data.deltaNorms.norm1.x, data.deltaNorms.norm1.y, data.deltaNorms.norm1.z),
+            norm2: new THREE.Vector3(data.deltaNorms.norm2.x, data.deltaNorms.norm2.y, data.deltaNorms.norm2.z)
+          } : null,
           centerPos: data.centerPos ? new THREE.Vector3(data.centerPos.x, data.centerPos.y, data.centerPos.z) : null,
           radius: data.radius,
           zHeight: data.zHeight

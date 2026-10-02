@@ -45,21 +45,32 @@ export class BridgeMeshManager {
     return sprite;
   }
 
-  createPiBridgePair(atomA, atomB, axisVector = new THREE.Vector3(0, 0, 1), labelText = 'π (Bonding)', opacity = 0.15) {
+  createPiBridgePair(atomA, atomB, axisVector = new THREE.Vector3(0, 0, 1), labelText = 'π (Bonding)', opacity = 0.15, lobePairs = null) {
     if (!atomA || !atomB) return;
     const pA = atomA.position.clone();
     const pB = atomB.position.clone();
     const dist = pA.distanceTo(pB);
-    if (dist < 0.2 || dist > 6.0) return;
+    if (dist < 0.2 || dist > 6.5) return;
 
-    const norm = axisVector.clone().normalize();
+    const norm = axisVector ? axisVector.clone().normalize() : new THREE.Vector3(0, 0, 1);
     const hPeak = 1.05; // Center of demi-sphere lobe head
 
-    // 1. Top Lobe Bridge (+ phase, Red)
-    const topA = pA.clone().add(norm.clone().multiplyScalar(hPeak));
-    const topB = pB.clone().add(norm.clone().multiplyScalar(hPeak));
-    const topMid = topA.clone().add(topB).multiplyScalar(0.5).add(norm.clone().multiplyScalar(0.18));
+    let topA, topB, botA, botB;
 
+    if (lobePairs && lobePairs.length >= 2) {
+      topA = lobePairs[0].posA.clone();
+      topB = lobePairs[0].posB.clone();
+      botA = lobePairs[1].posA.clone();
+      botB = lobePairs[1].posB.clone();
+    } else {
+      topA = pA.clone().add(norm.clone().multiplyScalar(hPeak));
+      topB = pB.clone().add(norm.clone().multiplyScalar(hPeak));
+      botA = pA.clone().sub(norm.clone().multiplyScalar(hPeak));
+      botB = pB.clone().sub(norm.clone().multiplyScalar(hPeak));
+    }
+
+    // 1. Top Lobe Bridge (+ phase, Red)
+    const topMid = topA.clone().add(topB).multiplyScalar(0.5).add(norm.clone().multiplyScalar(0.18));
     const topCurve = new THREE.CatmullRomCurve3([topA, topMid, topB]);
     const topTubeGeom = new THREE.TubeGeometry(topCurve, 24, 0.36, 16, false);
     const topTubeMat = this.orbitalFactory.createOrbitalMaterial(COLOR_POS_PHASE, Math.max(0.22, opacity * 1.4));
@@ -67,10 +78,7 @@ export class BridgeMeshManager {
     this.bridgeGroup.add(topTubeMesh);
 
     // 2. Bottom Lobe Bridge (- phase, Blue)
-    const botA = pA.clone().sub(norm.clone().multiplyScalar(hPeak));
-    const botB = pB.clone().sub(norm.clone().multiplyScalar(hPeak));
     const botMid = botA.clone().add(botB).multiplyScalar(0.5).sub(norm.clone().multiplyScalar(0.18));
-
     const botCurve = new THREE.CatmullRomCurve3([botA, botMid, botB]);
     const botTubeGeom = new THREE.TubeGeometry(botCurve, 24, 0.36, 16, false);
     const botTubeMat = this.orbitalFactory.createOrbitalMaterial(COLOR_NEG_PHASE, Math.max(0.22, opacity * 1.4));
@@ -109,9 +117,9 @@ export class BridgeMeshManager {
     const pA = atomA.position.clone();
     const pB = atomB.position.clone();
     const dist = pA.distanceTo(pB);
-    if (dist < 0.2 || dist > 6.0) return;
+    if (dist < 0.2 || dist > 6.5) return;
 
-    const norm = axisVector.clone().normalize();
+    const norm = axisVector ? axisVector.clone().normalize() : new THREE.Vector3(0, 0, 1);
     const bondDir = pB.clone().sub(pA).normalize();
     const midPoint = pA.clone().add(pB).multiplyScalar(0.5);
 
@@ -137,6 +145,96 @@ export class BridgeMeshManager {
     if (labelText) {
       const sprite = this.makeTextSprite(labelText, '#f43f5e');
       sprite.position.copy(midPoint.clone().add(norm.clone().multiplyScalar(1.95)));
+      this.bridgeGroup.add(sprite);
+    }
+  }
+
+  createDeltaBridgeQuad(atomA, atomB, deltaNorms = null, labelText = 'δ (Bonding)', opacity = 0.15, lobePairs = null) {
+    if (!atomA || !atomB) return;
+    const pA = atomA.position.clone();
+    const pB = atomB.position.clone();
+    const dist = pA.distanceTo(pB);
+    if (dist < 0.2 || dist > 6.5) return;
+
+    const midPoint = pA.clone().add(pB).multiplyScalar(0.5);
+    const bondDir = pB.clone().sub(pA).normalize();
+
+    const dashedMat = new THREE.LineDashedMaterial({
+      color: 0x38bdf8,
+      dashSize: 0.12,
+      gapSize: 0.08,
+      transparent: true,
+      opacity: 0.95
+    });
+
+    if (lobePairs && lobePairs.length >= 4) {
+      lobePairs.forEach(pair => {
+        const ptA = pair.posA.clone();
+        const ptB = pair.posB.clone();
+        const radialA = ptA.clone().sub(pA);
+        const radialB = ptB.clone().sub(pB);
+        const radialAvg = radialA.add(radialB).multiplyScalar(0.5).normalize();
+        const ptMid = ptA.clone().add(ptB).multiplyScalar(0.5).add(radialAvg.multiplyScalar(0.18));
+
+        const curve = new THREE.CatmullRomCurve3([ptA, ptMid, ptB]);
+        const tubeGeom = new THREE.TubeGeometry(curve, 24, 0.32, 16, false);
+        const color = pair.phase === 1 ? COLOR_POS_PHASE : COLOR_NEG_PHASE;
+        const tubeMat = this.orbitalFactory.createOrbitalMaterial(color, Math.max(0.22, opacity * 1.4));
+        const tubeMesh = new THREE.Mesh(tubeGeom, tubeMat);
+        this.bridgeGroup.add(tubeMesh);
+
+        const dashedGeom = new THREE.BufferGeometry().setFromPoints([ptA, ptB]);
+        const dashedLine = new THREE.Line(dashedGeom, dashedMat);
+        dashedLine.computeLineDistances();
+        this.bridgeGroup.add(dashedLine);
+      });
+    }
+
+    if (labelText) {
+      const sprite = this.makeTextSprite(labelText, '#38bdf8');
+      let upDir = new THREE.Vector3(0, 1, 0);
+      if (Math.abs(bondDir.y) > 0.8) upDir = new THREE.Vector3(0, 0, 1);
+      const perp = upDir.sub(bondDir.clone().multiplyScalar(upDir.dot(bondDir))).normalize();
+      sprite.position.copy(midPoint.clone().add(perp.multiplyScalar(1.55)));
+      this.bridgeGroup.add(sprite);
+    }
+  }
+
+  createDeltaAntibondingNodalPair(atomA, atomB, deltaNorms = null, labelText = 'δ* (Antibonding)') {
+    if (!atomA || !atomB) return;
+    const pA = atomA.position.clone();
+    const pB = atomB.position.clone();
+    const midPoint = pA.clone().add(pB).multiplyScalar(0.5);
+    const bondDir = pB.clone().sub(pA).normalize();
+
+    // Plane 1: Transverse plane bisecting the internuclear bond
+    const planeGeom = new THREE.PlaneGeometry(3.0, 3.0);
+    const planeMat = new THREE.MeshBasicMaterial({
+      color: 0xf472b6,
+      transparent: true,
+      opacity: 0.28,
+      side: THREE.DoubleSide,
+      depthWrite: false
+    });
+
+    const plane1 = new THREE.Mesh(planeGeom, planeMat);
+    plane1.position.copy(midPoint);
+    plane1.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), bondDir);
+    this.bridgeGroup.add(plane1);
+
+    // Plane 2: Longitudinal plane containing the bond
+    let upDir = new THREE.Vector3(0, 1, 0);
+    if (Math.abs(bondDir.y) > 0.8) upDir = new THREE.Vector3(1, 0, 0);
+    const longDir = upDir.sub(bondDir.clone().multiplyScalar(upDir.dot(bondDir))).normalize();
+
+    const plane2 = new THREE.Mesh(planeGeom, planeMat);
+    plane2.position.copy(midPoint);
+    plane2.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), longDir);
+    this.bridgeGroup.add(plane2);
+
+    if (labelText) {
+      const sprite = this.makeTextSprite(labelText, '#f43f5e');
+      sprite.position.copy(midPoint.clone().add(longDir.clone().multiplyScalar(1.85)));
       this.bridgeGroup.add(sprite);
     }
   }
@@ -188,9 +286,13 @@ export class BridgeMeshManager {
         if (!atomA || !atomB) return;
 
         if (b.type === 'bonding') {
-          this.createPiBridgePair(atomA, atomB, b.normDir, b.labelText, opacity);
+          this.createPiBridgePair(atomA, atomB, b.normDir, b.labelText, opacity, b.lobePairs);
         } else if (b.type === 'antibonding') {
           this.createAntibondingNodalPair(atomA, atomB, b.normDir, b.labelText);
+        } else if (b.type === 'delta_bonding') {
+          this.createDeltaBridgeQuad(atomA, atomB, b.deltaNorms, b.labelText, opacity, b.lobePairs);
+        } else if (b.type === 'delta_antibonding') {
+          this.createDeltaAntibondingNodalPair(atomA, atomB, b.deltaNorms, b.labelText);
         }
       }
     });
