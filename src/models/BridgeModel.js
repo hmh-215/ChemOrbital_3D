@@ -5,7 +5,7 @@
 
 export class BridgeModel {
   constructor(options = {}) {
-    this.id = options.id || ('bridge_' + Math.random().toString(36).substr(2, 9));
+    this.id = options.id || ('bridge_' + Math.random().toString(36).slice(2, 11));
     this.type = options.type || 'bonding'; // 'bonding', 'antibonding', 'delta_bonding', 'delta_antibonding', or 'delocalized_ring'
     this.atomAId = options.atomAId || null;
     this.atomBId = options.atomBId || null;

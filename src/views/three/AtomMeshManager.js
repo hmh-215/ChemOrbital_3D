@@ -98,11 +98,12 @@ export class AtomMeshManager {
     group.add(selectionRing);
 
     // 3. Orbital Cloud Mesh Group
+    const orbitalOptions = { ...options, phase: atomModel.phase };
     const orbitalGroup = this.orbitalFactory.generateOrbitalObject(
       atomModel.orbitalType,
       atomModel.showArrangement,
       atomModel.showNodalPlanes,
-      options
+      orbitalOptions
     );
     group.add(orbitalGroup);
 
@@ -144,11 +145,13 @@ export class AtomMeshManager {
 
     // Rebuild orbital mesh
     record.group.remove(record.orbitalGroup);
+    this.orbitalFactory.disposeObject(record.orbitalGroup);
+    const orbitalOptions = { ...options, phase: atomModel.phase };
     record.orbitalGroup = this.orbitalFactory.generateOrbitalObject(
       atomModel.orbitalType,
       atomModel.showArrangement,
       atomModel.showNodalPlanes,
-      options
+      orbitalOptions
     );
     record.group.add(record.orbitalGroup);
   }
@@ -158,10 +161,7 @@ export class AtomMeshManager {
     if (!record) return;
 
     this.scene.remove(record.group);
-    record.nucleusMesh.geometry.dispose();
-    record.nucleusMesh.material.dispose();
-    record.selectionRing.geometry.dispose();
-    record.selectionRing.material.dispose();
+    this._disposeRecord(record);
     this.atomMeshes.delete(atomId);
   }
 
@@ -182,14 +182,31 @@ export class AtomMeshManager {
   rebuildAllOrbitals(options = {}) {
     this.atomMeshes.forEach((record) => {
       record.group.remove(record.orbitalGroup);
+      this.orbitalFactory.disposeObject(record.orbitalGroup);
+      const orbitalOptions = { ...options, phase: record.atomModel.phase };
       record.orbitalGroup = this.orbitalFactory.generateOrbitalObject(
         record.atomModel.orbitalType,
         record.atomModel.showArrangement,
         record.atomModel.showNodalPlanes,
-        options
+        orbitalOptions
       );
       record.group.add(record.orbitalGroup);
     });
+  }
+
+  _disposeRecord(record) {
+    record.nucleusMesh.geometry.dispose();
+    record.nucleusMesh.material.dispose();
+    record.selectionRing.geometry.dispose();
+    record.selectionRing.material.dispose();
+    this.orbitalFactory.disposeObject(record.orbitalGroup);
+  }
+
+  /** Keep the local-axes helper glued to the primary atom while it moves / rotates. */
+  syncAxes(primaryAtom) {
+    if (!primaryAtom) return;
+    this.selectedAtomAxes.position.copy(primaryAtom.position);
+    this.selectedAtomAxes.rotation.copy(primaryAtom.rotation);
   }
 
   getAtomFromMesh(mesh) {
@@ -230,6 +247,7 @@ export class AtomMeshManager {
   clearAll() {
     this.atomMeshes.forEach((record) => {
       this.scene.remove(record.group);
+      this._disposeRecord(record);
     });
     this.atomMeshes.clear();
     this.selectedAtomAxes.visible = false;

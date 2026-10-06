@@ -29,29 +29,30 @@
 
 | Action | Control / Shortcut |
 | :--- | :--- |
-| **Undo Last Change** | **Ctrl + Z** (or Cmd + Z, up to 3 reversals) or click **↩ Undo** in header |
-| **Redo Undone Change** | **Ctrl + Y** (or Ctrl + Shift + Z / Cmd + Y) or click **↪ Redo** in header |
+| **Switch Modes** | Press **1** (Demos), **2** (Build), **3** (Configure), or click HUD buttons |
+| **Toggle MO Diagram Panel** | Press **4** or click **📊 MO Diagram** |
+| **Help & Controls Guide** | Press **H** or **?** or click **❓ Help** in top bar |
+| **Undo Last Change** | **Ctrl + Z** (or Cmd + Z, up to 3 reversals) |
+| **Redo Undone Change** | **Ctrl + Y** (or Ctrl + Shift + Z / Cmd + Y) |
 | **Select Atom** | **Left Click** on atom nucleus |
 | **Select All of Same Element** | **Shift + Double Click** on atom or roster badge (e.g. all H, all C, all O) |
 | **Toggle Selection (Atom-by-Atom)** | **Ctrl + Left Click** (or Cmd + Click) |
-| **Marquee Box Multi-Select** | **Shift + Left Drag** on canvas (or switch to *Multiple Selection* mode) |
+| **Marquee Box Multi-Select** | **Left Drag** on canvas in Build/Configure modes |
 | **Delete Selected Atom(s)** | **Delete** or **Backspace** key (or click 🗑️ Delete Atom) |
-| **Center / Focus Camera** | **Double Click** (without Shift) on atom or sidebar badge |
-| **Switch Modes** | Click **🔄 Orbit**, **🔨 Build**, or **⬚ Multiple Selection** in HUD |
-| **Toggle Theme** | Click **☀️ Light** / **🌙 Dark** in top bar (high-contrast black text in light mode) |
+| **Center / Focus Camera** | **Space** / **R** or click **⟲ Center** in top bar |
+| **Interactive 3D Rotation Gizmo** | Drag or click axes rings (+X, +Y, +Z) on bottom-right orientation gizmo |
+| **Keyboard Navigation** | **Arrow Keys** to orbit; hold **Right Arrow** to shift scene smoothly |
+| **Toggle Theme** | Click **☀️ Light** / **🌙 Dark** in top bar (starts in light mode on boot) |
+| **Quick Build Atom Attachment** | In Build Mode, click any orbital lobe, dotted bond line, or ghost green sphere |
 | **Cycle Quick Build Orbitals** | **Click active element button again** in Quick Build toolbar (e.g. $sp^3 \to sp^2 \to sp$) |
 | **Form Covalent Bond(s)** | Select $\ge 2$ atoms and click **➕ Form Bond(s)** |
 | **Remove Covalent Bond(s)** | Select $\ge 2$ atoms and click **➖ Remove Bond(s)** |
-| **Auto-Align $p$-Orbitals** | Click **🔄 Align p** in Multiple Selection or Single Atom panel |
 | **Overlap / Bridge $\pi$-Orbitals** | Select $\ge 2$ bonded atoms and click **🔗 Form π-Bond Overlap** |
-| **Per-Axis Rotation Step** | Click **+90°**, **−90°**, or **180°** under Axis X, Y, or Z in Selected Atom Properties |
-| **Clear Canvas** | Click **🗑️ Clear Board** in Atoms roster header |
-| **Toggle Arrangement Outline** | Click **📐 Geometric Outline** in Selected Atom Properties (per atom) |
-| **Toggle Nodal Surfaces** | Click **⚪ Nodal Surfaces** in Selected Atom Properties (per atom) |
-| **Rotate Camera (Orbit)** | **Left Drag** on empty background |
+| **Per-Axis Rotation Step & Snap** | Click snap step dots or use slider in Configure mode (snaps to bonding alignment) |
+| **Toggle Arrangement Outline** | Click **📐 Geometric Outline** in Manual Add or Configure mode |
+| **Toggle Nodal Surfaces** | Click **⚪ Nodal Surfaces** in Manual Add or Configure mode |
 | **Pan Camera** | **Right Drag** (or Middle Click Drag) |
 | **Zoom In / Out** | **Mouse Scroll Wheel** |
-| **Reset View** | Click **⟲ Center** in top bar |
 
 ---
 
@@ -67,7 +68,7 @@ The interface is structured into dedicated panels and interaction modes to keep 
 - **🔄 Orbit Mode (Default):** A clean observation mode. Sliders, builders, and orbital palettes are hidden so students and instructors can rotate, pan, and zoom around 3D molecules without clutter.
 - **🔨 Build Mode:** Displays the full manual and quick-build sidebar panels for adding, transforming, and styling atoms, orbitals, and covalent bonds.
 - **⬚ Multiple Selection Mode:** Displays marquee selection controls, batch atom inspector (group position, rotation, and radius sliders), manual covalent bond tools (`➕ Form Bond(s)` / `➖ Remove Bond(s)`), and phase-accurate orbital overlap bridging tools.
-- **☀️ Light / 🌙 Dark Mode Toggle:** Seamlessly switch between dark mode (deep space navy `#0b0f19`) and high-contrast light mode (`#f8fafc` with crisp `#0f172a` black text) optimized for classroom projectors and printed handouts.
+- **☀️ Light / 🌙 Dark Mode Toggle (light is the default; append `?theme=dark` to the URL to start in dark):** Seamlessly switch between dark mode (deep space navy `#0b0f19`) and high-contrast light mode (`#f8fafc` with crisp `#0f172a` black text) optimized for classroom projectors and printed handouts.
 
 </details>
 

@@ -18,9 +18,10 @@
   <link rel="stylesheet" href="./css/main.css">
   <link rel="stylesheet" href="./css/sidebar.css">
   <link rel="stylesheet" href="./css/hud.css">
+  <link rel="stylesheet" href="./css/mo-panel.css">
   <link rel="stylesheet" href="./css/theme.css">
 </head>
-<body class="mode-orbit">
+<body class="mode-orbit theme-light">
 
   <!-- Left Sidebar Panel -->
   <aside id="sidebar">
@@ -32,11 +33,10 @@
           <div class="brand-subtitle">Gen Chem 1 Orbitals</div>
         </div>
       </div>
-      <div style="display: flex; gap: 5px; align-items: center;">
-        <button class="btn" id="undo-btn" title="Undo change (Ctrl+Z)" style="font-size: 11px; padding: 5px 8px;" disabled>↩ Undo</button>
-        <button class="btn" id="redo-btn" title="Redo change (Ctrl+Y)" style="font-size: 11px; padding: 5px 8px;" disabled>↪ Redo</button>
-        <button class="btn" id="theme-toggle-btn" title="Toggle Light / Dark Mode" style="font-size: 11px; padding: 5px 8px;">☀️ Light</button>
-        <button class="btn" id="reset-cam-btn" title="Reset Camera View" style="font-size: 11px; padding: 5px 8px;">⟲ Center</button>
+      <div style="display: flex; gap: 6px; align-items: center;">
+        <button class="btn" id="theme-toggle-btn" title="Switch to Dark Theme" style="font-size: 13px; padding: 6px 10px;">🌙 Dark</button>
+        <button class="btn" id="reset-cam-btn" title="Reset Camera View (Space / R)" style="font-size: 13px; padding: 6px 10px;">⟲ Center</button>
+        <button class="btn" id="help-btn" title="Help & Controls Guide (H / ?)" style="font-size: 13px; padding: 6px 10px; border-color: #84cc16; color: #84cc16; font-weight: 600;">❓ Help</button>
       </div>
     </div>
 
@@ -44,133 +44,60 @@
 
       <!-- Dynamic Mode Status Banner -->
       <div class="sidebar-mode-banner" id="sidebar-mode-banner">
-        <span>🔄</span>
-        <div><strong>Orbit Mode:</strong> Inspect 3D orbitals & molecules. Use teaching demos below.</div>
+        <span>🧪</span>
+        <div><strong>Demos Mode:</strong> Explore textbook organic, inorganic, and orbital gallery models.</div>
       </div>
 
-      <!-- Preset Scenarios (Visible in Orbit Mode) -->
+      <!-- Preset Scenarios (Visible in Demos Mode) -->
       <div class="section-card" id="teaching-presets-card">
         <div class="section-title">
           <span>Teaching Quick-Demos</span>
           <span>🧪</span>
         </div>
-        <div style="font-size: 11px; color: var(--text-muted); line-height: 1.4; margin-bottom: 6px;">
-          Select standard textbook molecules & advanced carbon conformations:
-        </div>
-        <div class="btn-group" style="display: grid; grid-template-columns: 1fr 1fr; gap: 5px;">
-          <button class="btn" id="preset-sp3-ch4">CH₄ (sp³ Tetra)</button>
-          <button class="btn" id="preset-sp2-c2h4" style="border-color: #84cc16;">C₂H₄ (sp² + π-Bridge)</button>
-          <button class="btn" id="preset-sp-c2h2" style="border-color: #84cc16;">C₂H₂ (sp + 2π-Bonds)</button>
-          <button class="btn" id="preset-benzene" style="border-color: #38bdf8;">Benzene C₆H₆ (π-Ring)</button>
-          <button class="btn" id="preset-cyclohexane-chair" style="border-color: #84cc16;">Cyclohexane (Chair)</button>
-          <button class="btn" id="preset-cyclohexane-boat" style="border-color: #f59e0b;">Cyclohexane (Boat)</button>
-          <button class="btn" id="preset-graphene" style="border-color: #a855f7; grid-column: span 2;">Graphene Sheets (3-Layer Honeycomb)</button>
-          <button class="btn" id="preset-sp3d-pcl5">PCl₅ (sp³d Trig Bip)</button>
-          <button class="btn" id="preset-sp3d2-sf6">SF₆ (sp³d² Octa)</button>
-          <button class="btn" id="preset-so2" style="border-color: #eab308;">SO₂ (pπ-dπ Resonance)</button>
-          <button class="btn" id="preset-h2o">H₂O (sp³ Bent Lone Pairs)</button>
-          <button class="btn" id="preset-d-orbitals">All 5 d-Orbitals (+ Nodal)</button>
-        </div>
-      </div>
-
-      <!-- Multiple Selection & Hybridization / π-Bond Card (Visible in Multiple Selection Mode) -->
-      <div class="section-card" id="multi-select-card" style="display: none;">
-        <div class="section-title">
-          <span>⬚ Multiple Selection Mode</span>
-          <span id="multi-select-count-badge" style="font-size: 11px; color: var(--accent-cyan); font-family: 'JetBrains Mono', monospace;">0 Selected</span>
+        <div style="font-size: 12.5px; color: var(--text-muted); line-height: 1.4; margin-bottom: 2px;">
+          Standard textbook molecules and orbital configurations organized by category:
         </div>
 
-        <div style="font-size: 11px; color: var(--text-muted); line-height: 1.45;">
-          • <span class="kbd">Shift + Double Click</span> select all atoms of same element (H, C, etc.)<br>
-          • <span class="kbd">Shift + Drag</span> on canvas to box-select multiple atoms<br>
-          • <span class="kbd">Ctrl + Click</span> to toggle atoms one-by-one
-        </div>
-
-        <!-- Selection Controls -->
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
-          <button class="btn" id="multi-select-all-btn">Select All Atoms</button>
-          <button class="btn" id="multi-deselect-all-btn">Deselect All</button>
-        </div>
-
-        <!-- Covalent σ-Bonds Section -->
-        <div style="background: rgba(56, 189, 248, 0.08); border: 1px solid rgba(56, 189, 248, 0.25); border-radius: 8px; padding: 10px; display: flex; flex-direction: column; gap: 8px;">
-          <div style="display: flex; justify-content: space-between; align-items: center;">
-            <span style="font-size: 11px; font-weight: 700; color: #38bdf8;">🔗 Covalent Bonding (σ-Bonds)</span>
-            <span style="font-size: 10px; color: #38bdf8;" id="multi-bond-count-badge">Connect Atoms</span>
+        <!-- Category 1: Organic Chemistry -->
+        <div class="preset-category-block">
+          <div class="preset-category-header" style="color: #84cc16; border-left: 3px solid #84cc16;">
+            <span>🌿 Organic Chemistry</span>
           </div>
-          <div style="font-size: 10px; color: var(--text-muted); line-height: 1.4;">
-            Form or remove covalent bonds (represented as grey 3D cylinders) between selected atoms:
-          </div>
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
-            <button class="btn btn-primary" id="multi-form-covalent-btn" style="background: #0284c7; color: #fff; font-weight: 600; font-size: 11px;">
-              ➕ Form Bond(s)
-            </button>
-            <button class="btn btn-danger" id="multi-remove-covalent-btn" style="font-size: 11px;">
-              ➖ Remove Bond(s)
-            </button>
+          <div class="btn-group" style="display: grid; grid-template-columns: 1fr 1fr; gap: 5px;">
+            <button class="btn btn-cat-organic" id="preset-sp3-ch4" style="border-color: #84cc16; color: #bef264;">CH₄ (sp³ Tetra)</button>
+            <button class="btn btn-cat-organic" id="preset-sp2-c2h4" style="border-color: #84cc16; color: #bef264;">C₂H₄ (sp² + π-Bridge)</button>
+            <button class="btn btn-cat-organic" id="preset-sp-c2h2" style="border-color: #84cc16; color: #bef264;">C₂H₂ (sp + 2π-Bonds)</button>
+            <button class="btn btn-cat-organic" id="preset-benzene" style="border-color: #84cc16; color: #bef264;">Benzene C₆H₆ (π-Ring)</button>
+            <button class="btn btn-cat-organic" id="preset-cyclohexane-chair" style="border-color: #84cc16; color: #bef264;">Cyclohexane (Chair)</button>
+            <button class="btn btn-cat-organic" id="preset-cyclohexane-boat" style="border-color: #84cc16; color: #bef264;">Cyclohexane (Boat)</button>
+            <button class="btn btn-cat-organic" id="preset-graphene" style="border-color: #84cc16; color: #bef264; grid-column: span 2;">Graphene Sheets (3-Layer)</button>
           </div>
         </div>
 
-        <!-- π-Bond & Orbital Bridging (Highlighted) -->
-        <div style="background: rgba(132, 204, 22, 0.08); border: 1px solid rgba(132, 204, 22, 0.25); border-radius: 8px; padding: 10px; display: flex; flex-direction: column; gap: 8px;">
-          <div style="display: flex; justify-content: space-between; align-items: center;">
-            <span style="font-size: 11px; font-weight: 700; color: #84cc16;">⚡ Hybridization & π-Bonding</span>
-            <span style="font-size: 10px; color: #84cc16;">C₂H₄, Benzene, NO₂</span>
+        <!-- Category 2: Inorganic Chemistry -->
+        <div class="preset-category-block" style="margin-top: 6px;">
+          <div class="preset-category-header" style="color: #38bdf8; border-left: 3px solid #38bdf8;">
+            <span>⚗️ Inorganic Chemistry</span>
           </div>
-          <div style="font-size: 10px; color: var(--text-muted); line-height: 1.4;">
-            Overlap parallel p-orbitals between adjacent bonded atoms. In-phase lobes (+ with +, − with −) form a bonding π cloud; opposite phases form an antibonding π* nodal plane:
-          </div>
-          <div style="display: grid; grid-template-columns: 1fr auto auto; gap: 6px;">
-            <button class="btn btn-primary" id="bridge-orbitals-btn" style="background: #84cc16; color: #0b0f19; font-weight: 700; font-size: 11px;">
-              🔗 Form π-Bond Overlap
-            </button>
-            <button class="btn" id="multi-align-p-btn" title="Auto-align unhybridized p-orbitals parallel to bonded partners">🔄 Align p</button>
-            <button class="btn" id="clear-bridges-btn" title="Clear all π-bond bridges & nodal planes">🧹 Clear</button>
-          </div>
-          <div style="font-size: 10px; color: var(--text-muted); line-height: 1.35; background: rgba(0,0,0,0.22); padding: 5px 8px; border-radius: 4px;">
-            • <strong style="color: #ef4444;">Red</strong> + <strong style="color: #ef4444;">Red</strong>: <strong>Bonding π</strong> (Continuous cloud)<br>
-            • <strong style="color: #ef4444;">Red</strong> + <strong style="color: #3b82f6;">Blue</strong>: <strong>Antibonding π*</strong> (Vertical Nodal Plane)<br>
-            • <em>Only directly bonded adjacent atoms form π-bridges (no cross-ring chords)</em>
+          <div class="btn-group" style="display: grid; grid-template-columns: 1fr 1fr; gap: 5px;">
+            <button class="btn btn-cat-inorganic" id="preset-h2o" style="border-color: #38bdf8; color: #7dd3fc;">H₂O (sp³ Bent)</button>
+            <button class="btn btn-cat-inorganic" id="preset-co2" style="border-color: #38bdf8; color: #7dd3fc;">CO₂ (D∞h Triatomic MO)</button>
+            <button class="btn btn-cat-inorganic" id="preset-so2" style="border-color: #38bdf8; color: #7dd3fc;">SO₂ (pπ-dπ Resonance)</button>
+            <button class="btn btn-cat-inorganic" id="preset-sp3d-pcl5" style="border-color: #38bdf8; color: #7dd3fc;">PCl₅ (sp³d Trig Bip)</button>
+            <button class="btn btn-cat-inorganic" id="preset-sp3d2-sf6" style="border-color: #38bdf8; color: #7dd3fc;">SF₆ (sp³d² Octa)</button>
+            <button class="btn btn-cat-inorganic" id="preset-h2" style="border-color: #38bdf8; color: #7dd3fc;">H₂ (1s σ-Bond)</button>
+            <button class="btn btn-cat-inorganic" id="preset-o2" style="border-color: #38bdf8; color: #7dd3fc;">O₂ (Triplet π-Bonding)</button>
           </div>
         </div>
 
-        <!-- Batch Property Adjustments -->
-        <div style="font-size: 11px; font-weight: 700; color: var(--text-main); text-transform: uppercase; letter-spacing: 0.5px; margin-top: 4px;">
-          Apply Properties to All Selected:
-        </div>
-
-        <!-- Batch Color Picker -->
-        <div class="form-row">
-          <label>Batch Color:</label>
-          <div class="color-picker-wrapper">
-            <input type="color" id="batch-color-input" value="#334155">
-            <span style="font-size: 11px; color: var(--text-muted);">Apply color</span>
+        <!-- Category 3: Miscellaneous & Orbitals Gallery -->
+        <div class="preset-category-block" style="margin-top: 6px;">
+          <div class="preset-category-header" style="color: #f59e0b; border-left: 3px solid #f59e0b;">
+            <span>✨ Miscellaneous & Orbitals Gallery</span>
           </div>
-        </div>
-
-        <!-- Batch Orbital Type Selection -->
-        <div style="font-size: 11px; color: var(--text-muted);">Batch Orbital Hybridization:</div>
-        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px;">
-          <button class="btn batch-orb-btn" data-orbital="none">None</button>
-          <button class="btn batch-orb-btn" data-orbital="s">s</button>
-          <button class="btn batch-orb-btn" data-orbital="pz">p<sub>z</sub></button>
-          <button class="btn batch-orb-btn" data-orbital="p_all">All p</button>
-          <button class="btn batch-orb-btn" data-orbital="sp">sp</button>
-          <button class="btn batch-orb-btn" data-orbital="sp2">sp²</button>
-          <button class="btn batch-orb-btn" data-orbital="sp3">sp³</button>
-          <button class="btn batch-orb-btn" data-orbital="sp3d">sp³d</button>
-        </div>
-
-        <!-- Batch Outlines and Nodal -->
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
-          <button class="btn" id="batch-outline-toggle-btn">📐 Toggle Outlines</button>
-          <button class="btn" id="batch-nodal-toggle-btn">⚪ Toggle Nodal</button>
-        </div>
-
-        <!-- Batch Duplicate / Delete -->
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 4px;">
-          <button class="btn" id="batch-duplicate-btn">📋 Duplicate All</button>
-          <button class="btn btn-danger" id="batch-delete-btn">🗑️ Delete All</button>
+          <div class="btn-group" style="display: grid; grid-template-columns: 1fr; gap: 5px;">
+            <button class="btn btn-cat-misc" id="preset-d-orbitals" style="border-color: #f59e0b; color: #fde68a;">All 5 d-Orbitals (+ Nodal)</button>
+          </div>
         </div>
       </div>
 
@@ -178,15 +105,15 @@
       <div class="section-card" id="quick-build-card">
         <div class="section-title">
           <span>⚡ Quick Build Tool</span>
-          <span id="quick-build-indicator" style="font-size: 10px; color: #84cc16; font-weight: 600;">ACTIVE</span>
+          <span id="quick-build-indicator" style="font-size: 11.5px; color: #84cc16; font-weight: 700;">ACTIVE</span>
         </div>
-        <div style="font-size: 11px; color: var(--text-muted); line-height: 1.4;">
-          Click directly on any orbital lobe in 3D to instantly attach a bonding atom:
+        <div style="font-size: 12.5px; color: var(--text-muted); line-height: 1.4;">
+          Click directly on any orbital lobe or dotted bond line in 3D to attach a bonding atom:
         </div>
         <div style="display: flex; flex-direction: column; gap: 6px; margin-top: 6px;">
           <div style="display: flex; justify-content: space-between; align-items: center;">
-            <span style="font-size: 10px; font-weight: 700; color: var(--text-main); text-transform: uppercase; letter-spacing: 0.5px;">Attach on Lobe Click:</span>
-            <span style="font-size: 9px; color: var(--accent-cyan);">Click to select • Click again to cycle ⟳</span>
+            <span style="font-size: 11.5px; font-weight: 700; color: var(--text-main); text-transform: uppercase; letter-spacing: 0.5px;">Attach on Lobe / Bond Click:</span>
+            <span style="font-size: 11px; color: var(--accent-cyan);">Click to select • Click again to cycle ⟳</span>
           </div>
           <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px;">
             <button class="quick-attach-btn active" data-elem="H" title="Hydrogen (H) - 1s orbital">⚪ H <span class="orb-badge">1s</span></button>
@@ -198,9 +125,9 @@
             <button class="quick-attach-btn" data-elem="F" title="Fluorine (F) - p orbital">🟢 F <span class="orb-badge">p</span></button>
             <button class="quick-attach-btn" data-elem="Cl" title="Chlorine (Cl) - p orbital">🟢 Cl <span class="orb-badge">p</span></button>
           </div>
-          <div id="quick-build-status-bar" style="margin-top: 4px; font-size: 10px; color: var(--text-muted); background: rgba(0,0,0,0.22); padding: 5px 8px; border-radius: 4px; display: flex; justify-content: space-between; align-items: center;">
+          <div id="quick-build-status-bar" style="margin-top: 4px; font-size: 11.5px; color: var(--text-muted); background: rgba(0,0,0,0.22); padding: 6px 10px; border-radius: 6px; display: flex; justify-content: space-between; align-items: center;">
             <span>Attaching: <strong id="quick-build-current-text" style="color: #38bdf8;">⚪ H (1s)</strong></span>
-            <span style="font-size: 9px; opacity: 0.8;">Click button to cycle ⟳</span>
+            <span style="font-size: 11px; opacity: 0.85;">Click button to cycle ⟳</span>
           </div>
         </div>
       </div>
@@ -209,15 +136,15 @@
       <div class="section-card" id="manual-build-card">
         <div class="section-title">
           <span>Manual Atom Addition</span>
-          <button class="btn btn-primary" id="add-atom-btn" style="padding: 4px 8px; font-size: 11px;">+ Add Atom</button>
+          <button class="btn btn-primary" id="add-atom-btn" style="padding: 5px 10px; font-size: 12px;">+ Add Atom</button>
         </div>
-        <div style="font-size: 11px; color: var(--text-muted);">Quick Element Type:</div>
+        <div style="font-size: 12.5px; color: var(--text-muted);">Quick Element Type:</div>
         <div class="element-presets">
           <div class="elem-chip" data-name="C" data-color="#334155" title="Carbon (C)">
             <span class="elem-dot" style="background:#475569;"></span>
             <span>C</span>
           </div>
-          <div class="elem-chip" data-name="H" data-color="#ffffff" title="Hydrogen (H)">
+          <div class="elem-chip" data-name="H" data-color="#cbd5e1" title="Hydrogen (H)">
             <span class="elem-dot" style="background:#ffffff;"></span>
             <span>H</span>
           </div>
@@ -278,7 +205,154 @@
               <option value="sp3d2">sp³d² (Octahedral 90°)</option>
             </select>
           </div>
+          <div class="form-row">
+            <label>Initial Charge:</label>
+            <select id="manual-atom-charge" class="form-control-input" style="width: 120px;">
+              <option value="0" selected>0 (Neutral)</option>
+              <option value="-1">-1 (Anion)</option>
+              <option value="-2">-2 (Dianion)</option>
+              <option value="1">+1 (Cation)</option>
+              <option value="2">+2 (Dication)</option>
+            </select>
+          </div>
+
+          <!-- Manual Outline and Nodal Surfaces Toggles -->
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 2px;">
+            <button type="button" class="btn" id="manual-outline-toggle-btn" style="font-size: 12px; padding: 6px 8px;">📐 Outline: OFF</button>
+            <button type="button" class="btn" id="manual-nodal-toggle-btn" style="font-size: 12px; padding: 6px 8px;">⚪ Nodal: OFF</button>
+          </div>
+
           <button class="btn btn-primary" id="manual-create-atom-btn" style="margin-top: 4px;">Create Atom</button>
+        </div>
+      </div>
+
+      <!-- Bonding & Overlaps Card (Visible in Build Mode) -->
+      <div class="section-card" id="bonding-tools-card">
+        <div class="section-title">
+          <span>Bonding & Orbital Overlaps</span>
+          <span style="font-size: 12px; color: var(--accent-cyan); font-family: 'JetBrains Mono', monospace;" id="multi-bond-count-badge">Connect Atoms</span>
+        </div>
+        <div style="font-size: 12.5px; color: var(--text-muted); line-height: 1.4;">
+          Hold & drag mouse on canvas to box-select multiple atoms, then form bonds:
+        </div>
+
+        <!-- Covalent σ-Bonds Section -->
+        <div style="background: rgba(56, 189, 248, 0.08); border: 1px solid rgba(56, 189, 248, 0.25); border-radius: 8px; padding: 10px; display: flex; flex-direction: column; gap: 8px;">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span style="font-size: 12.5px; font-weight: 700; color: #38bdf8;">🔗 Covalent Bonding (σ-Bonds)</span>
+          </div>
+          <div style="font-size: 11.5px; color: var(--text-muted); line-height: 1.4;">
+            Form or remove covalent bonds (grey 3D cylinders) between selected atoms:
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
+            <button class="btn btn-primary" id="multi-form-covalent-btn" style="background: #0284c7; color: #fff; font-weight: 600; font-size: 12px; padding: 6px 8px;">
+              ➕ Form Bond(s)
+            </button>
+            <button class="btn btn-danger" id="multi-remove-covalent-btn" style="font-size: 12px; padding: 6px 8px;">
+              ➖ Remove Bond(s)
+            </button>
+          </div>
+        </div>
+
+        <!-- π-Bond & Orbital Bridging -->
+        <div style="background: rgba(132, 204, 22, 0.08); border: 1px solid rgba(132, 204, 22, 0.25); border-radius: 8px; padding: 10px; display: flex; flex-direction: column; gap: 8px;">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span style="font-size: 12.5px; font-weight: 700; color: #84cc16;">⚡ Orbital Overlap & π / δ-Bonding</span>
+            <span style="font-size: 11.5px; color: #84cc16;">p-p, p-d, d-d</span>
+          </div>
+          <div style="font-size: 11.5px; color: var(--text-muted); line-height: 1.4;">
+            Form lateral π or face-to-face δ overlaps. Features auto-snap symmetry alignment into textbook quantum-mechanical overlap geometries:
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr auto auto; gap: 6px;">
+            <button class="btn btn-primary" id="bridge-orbitals-btn" style="background: #84cc16; color: #0b0f19; font-weight: 700; font-size: 12px; padding: 6px 8px;">
+              🔗 Form π / δ Bond
+            </button>
+            <button class="btn" id="multi-align-p-btn" style="font-size: 12px; padding: 6px 8px;" title="Auto-align orbitals into quantum symmetry for lateral π (p-p, p-d) or face-to-face δ (d-d) overlap">🔄 Align Orbitals</button>
+            <button class="btn" id="clear-bridges-btn" style="font-size: 12px; padding: 6px 8px;" title="Clear all π/δ-bond bridges & nodal planes">🧹 Clear</button>
+          </div>
+          <div style="font-size: 11.5px; color: var(--text-muted); line-height: 1.35; background: rgba(0,0,0,0.22); padding: 6px 9px; border-radius: 4px;">
+            • <strong>p–p (π):</strong> Parallel p-axes ⊥ to bond axis (C₂H₄, Benzene)<br>
+            • <strong>p–d (pπ–dπ):</strong> d-cloverleaf straddles bond axis to match lateral p-lobes (SO₂, oxoacids)<br>
+            • <strong style="color: #ef4444;">In-Phase</strong> (+ with +): <strong>Bonding</strong> | <strong style="color: #3b82f6;">Out-of-Phase</strong>: <strong>Antibonding Nodal Sheet</strong>
+          </div>
+        </div>
+      </div>
+
+      <!-- Configure Selected Atom(s) Card (Visible in Configure Mode) -->
+      <div class="section-card" id="multi-select-card">
+        <div class="section-title">
+          <span>⚙️ Configure Atom(s)</span>
+          <span id="multi-select-count-badge" style="font-size: 12px; color: var(--accent-cyan); font-family: 'JetBrains Mono', monospace;">0 Selected</span>
+        </div>
+
+        <div style="font-size: 12.5px; color: var(--text-muted); line-height: 1.45;">
+          • Select 1 or multiple atoms (Shift+Drag to box-select, Ctrl+Click to toggle)<br>
+          • Changes below apply to all currently selected atoms in batch
+        </div>
+
+        <!-- Selection Controls -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
+          <button class="btn" id="multi-select-all-btn">Select All Atoms</button>
+          <button class="btn" id="multi-deselect-all-btn">Deselect All</button>
+        </div>
+
+        <!-- Batch Property Adjustments -->
+        <div style="font-size: 12px; font-weight: 700; color: var(--text-main); text-transform: uppercase; letter-spacing: 0.5px; margin-top: 4px;">
+          Apply Properties to Selected:
+        </div>
+
+        <!-- Batch Color Picker -->
+        <div class="form-row">
+          <label>Nucleus Color:</label>
+          <div class="color-picker-wrapper">
+            <input type="color" id="batch-color-input" value="#334155">
+            <span style="font-size: 12px; color: var(--text-muted);">Apply color</span>
+          </div>
+        </div>
+
+        <!-- Batch Formal Charge Stepper -->
+        <div class="form-row" style="background: rgba(56, 189, 248, 0.07); padding: 6px 10px; border-radius: 6px; border: 1px solid rgba(56, 189, 248, 0.22);">
+          <label style="font-weight: 600;">⚡ Formal Charge:</label>
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <button class="btn stepper-btn" id="batch-charge-minus-btn" style="padding: 2px 9px; font-size: 14px; font-weight: 700;" title="More negative (−1)">−</button>
+            <div id="batch-charge-val" style="min-width: 28px; text-align: center; font-family: monospace; font-weight: 700; font-size: 13px; color: var(--accent-cyan);">±0</div>
+            <button class="btn stepper-btn" id="batch-charge-plus-btn" style="padding: 2px 9px; font-size: 14px; font-weight: 700;" title="More positive (+1)">+</button>
+          </div>
+        </div>
+
+
+        <!-- Batch Radius Slider -->
+        <div class="slider-row">
+          <div class="slider-label">
+            <span>Nucleus Size:</span>
+            <span class="value" id="batch-radius-val">0.42</span>
+          </div>
+          <input type="range" id="batch-radius-slider" min="0.2" max="1.0" step="0.02" value="0.42">
+        </div>
+
+        <!-- Batch Orbital Type Selection -->
+        <div style="font-size: 12.5px; color: var(--text-muted);">Batch Orbital Hybridization:</div>
+        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px;">
+          <button class="btn batch-orb-btn" data-orbital="none">None</button>
+          <button class="btn batch-orb-btn" data-orbital="s">s</button>
+          <button class="btn batch-orb-btn" data-orbital="pz">p<sub>z</sub></button>
+          <button class="btn batch-orb-btn" data-orbital="p_all">All p</button>
+          <button class="btn batch-orb-btn" data-orbital="sp">sp</button>
+          <button class="btn batch-orb-btn" data-orbital="sp2">sp²</button>
+          <button class="btn batch-orb-btn" data-orbital="sp3">sp³</button>
+          <button class="btn batch-orb-btn" data-orbital="sp3d">sp³d</button>
+        </div>
+
+        <!-- Batch Outlines and Nodal -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
+          <button class="btn" id="batch-outline-toggle-btn">📐 Toggle Outlines</button>
+          <button class="btn" id="batch-nodal-toggle-btn">⚪ Toggle Nodal</button>
+        </div>
+
+        <!-- Batch Duplicate / Delete -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 4px;">
+          <button class="btn" id="batch-duplicate-btn">📋 Duplicate All</button>
+          <button class="btn btn-danger" id="batch-delete-btn">🗑️ Delete All</button>
         </div>
       </div>
 
@@ -286,7 +360,7 @@
       <div class="section-card" id="atoms-roster-card">
         <div class="section-title">
           <span>Atoms (<span id="atom-count">0</span>)</span>
-          <button class="btn btn-danger" id="clear-all-btn" style="padding: 4px 8px; font-size: 11px;" title="Clear all atoms from the board">🗑️ Clear Board</button>
+          <button class="btn btn-danger" id="clear-all-btn" style="padding: 5px 10px; font-size: 12px;" title="Clear all atoms from the board">🗑️ Clear Board</button>
         </div>
 
         <!-- Atom Selection Badges -->
@@ -316,6 +390,19 @@
               <input type="text" id="atom-name-input" class="form-control-input" style="width: 70px;" value="C1">
             </div>
           </div>
+
+          <!-- Atom Formal Charge Stepper -->
+          <div class="form-row" id="atom-charge-row" style="background: rgba(56, 189, 248, 0.07); padding: 6px 10px; border-radius: 6px; border: 1px solid rgba(56, 189, 248, 0.22);">
+            <label style="display: flex; align-items: center; gap: 5px; font-weight: 600;">
+              <span>⚡ Formal Charge:</span>
+            </label>
+            <div style="display: flex; align-items: center; gap: 6px;">
+              <button class="btn stepper-btn" id="atom-charge-minus-btn" style="padding: 2px 9px; font-size: 13px; font-weight: 700; line-height: 1;" title="Add electron / more negative (e.g. -1, -2)">−</button>
+              <div id="atom-charge-val" style="min-width: 32px; text-align: center; font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 13px; color: var(--text-main);">0</div>
+              <button class="btn stepper-btn" id="atom-charge-plus-btn" style="padding: 2px 9px; font-size: 13px; font-weight: 700; line-height: 1;" title="Remove electron / more positive (e.g. +1, +2)">+</button>
+            </div>
+          </div>
+
 
           <!-- Position (X, Y, Z) -->
           <div class="slider-row">
@@ -352,7 +439,10 @@
               <span>Rotation X:</span>
               <span class="value" id="rot-x-val">0°</span>
             </div>
-            <input type="range" id="rot-x-slider" min="-180" max="180" step="5" value="0">
+            <div class="slider-track-wrapper">
+              <input type="range" id="rot-x-slider" min="-180" max="180" step="1" value="0">
+              <div class="slider-snap-track" id="rot-x-snap-track"></div>
+            </div>
           </div>
 
           <div class="slider-row">
@@ -360,7 +450,10 @@
               <span>Rotation Y:</span>
               <span class="value" id="rot-y-val">0°</span>
             </div>
-            <input type="range" id="rot-y-slider" min="-180" max="180" step="5" value="0">
+            <div class="slider-track-wrapper">
+              <input type="range" id="rot-y-slider" min="-180" max="180" step="1" value="0">
+              <div class="slider-snap-track" id="rot-y-snap-track"></div>
+            </div>
           </div>
 
           <div class="slider-row">
@@ -368,33 +461,36 @@
               <span>Rotation Z:</span>
               <span class="value" id="rot-z-val">0°</span>
             </div>
-            <input type="range" id="rot-z-slider" min="-180" max="180" step="5" value="0">
+            <div class="slider-track-wrapper">
+              <input type="range" id="rot-z-slider" min="-180" max="180" step="1" value="0">
+              <div class="slider-snap-track" id="rot-z-snap-track"></div>
+            </div>
           </div>
 
-          <div style="font-size: 11px; font-weight: 600; color: var(--text-muted); margin-top: 4px;">
+          <div style="font-size: 12px; font-weight: 600; color: var(--text-muted); margin-top: 4px;">
             Quick Step Rotation (Per-Axis):
           </div>
           <div style="display: flex; flex-direction: column; gap: 4px;">
             <!-- X row -->
             <div style="display: grid; grid-template-columns: 24px 1fr 1fr 1fr; gap: 4px; align-items: center;">
-              <span style="font-size: 11px; font-weight: 700; color: #ef4444; font-family: monospace;">X:</span>
-              <button class="btn rot-step-btn" data-axis="x" data-deg="90" style="padding: 3px; font-size: 10px;" title="Rotate +90° around X">+90°</button>
-              <button class="btn rot-step-btn" data-axis="x" data-deg="-90" style="padding: 3px; font-size: 10px;" title="Rotate -90° around X">-90°</button>
-              <button class="btn rot-step-btn" data-axis="x" data-deg="180" style="padding: 3px; font-size: 10px;" title="Rotate 180° around X">180°</button>
+              <span style="font-size: 12px; font-weight: 700; color: #ef4444; font-family: monospace;">X:</span>
+              <button class="btn rot-step-btn" data-axis="x" data-deg="90" style="padding: 4px 2px; font-size: 11px;" title="Rotate +90° around X">+90°</button>
+              <button class="btn rot-step-btn" data-axis="x" data-deg="-90" style="padding: 4px 2px; font-size: 11px;" title="Rotate -90° around X">-90°</button>
+              <button class="btn rot-step-btn" data-axis="x" data-deg="180" style="padding: 4px 2px; font-size: 11px;" title="Rotate 180° around X">180°</button>
             </div>
             <!-- Y row -->
             <div style="display: grid; grid-template-columns: 24px 1fr 1fr 1fr; gap: 4px; align-items: center;">
-              <span style="font-size: 11px; font-weight: 700; color: #10b981; font-family: monospace;">Y:</span>
-              <button class="btn rot-step-btn" data-axis="y" data-deg="90" style="padding: 3px; font-size: 10px;" title="Rotate +90° around Y">+90°</button>
-              <button class="btn rot-step-btn" data-axis="y" data-deg="-90" style="padding: 3px; font-size: 10px;" title="Rotate -90° around Y">-90°</button>
-              <button class="btn rot-step-btn" data-axis="y" data-deg="180" style="padding: 3px; font-size: 10px;" title="Rotate 180° around Y">180°</button>
+              <span style="font-size: 12px; font-weight: 700; color: #10b981; font-family: monospace;">Y:</span>
+              <button class="btn rot-step-btn" data-axis="y" data-deg="90" style="padding: 4px 2px; font-size: 11px;" title="Rotate +90° around Y">+90°</button>
+              <button class="btn rot-step-btn" data-axis="y" data-deg="-90" style="padding: 4px 2px; font-size: 11px;" title="Rotate -90° around Y">-90°</button>
+              <button class="btn rot-step-btn" data-axis="y" data-deg="180" style="padding: 4px 2px; font-size: 11px;" title="Rotate 180° around Y">180°</button>
             </div>
             <!-- Z row -->
             <div style="display: grid; grid-template-columns: 24px 1fr 1fr 1fr; gap: 4px; align-items: center;">
-              <span style="font-size: 11px; font-weight: 700; color: #3b82f6; font-family: monospace;">Z:</span>
-              <button class="btn rot-step-btn" data-axis="z" data-deg="90" style="padding: 3px; font-size: 10px;" title="Rotate +90° around Z">+90°</button>
-              <button class="btn rot-step-btn" data-axis="z" data-deg="-90" style="padding: 3px; font-size: 10px;" title="Rotate -90° around Z">-90°</button>
-              <button class="btn rot-step-btn" data-axis="z" data-deg="180" style="padding: 3px; font-size: 10px;" title="Rotate 180° around Z">180°</button>
+              <span style="font-size: 12px; font-weight: 700; color: #3b82f6; font-family: monospace;">Z:</span>
+              <button class="btn rot-step-btn" data-axis="z" data-deg="90" style="padding: 4px 2px; font-size: 11px;" title="Rotate +90° around Z">+90°</button>
+              <button class="btn rot-step-btn" data-axis="z" data-deg="-90" style="padding: 4px 2px; font-size: 11px;" title="Rotate -90° around Z">-90°</button>
+              <button class="btn rot-step-btn" data-axis="z" data-deg="180" style="padding: 4px 2px; font-size: 11px;" title="Rotate 180° around Z">180°</button>
             </div>
           </div>
 
@@ -412,7 +508,7 @@
               <label for="atom-arrangement-check" style="cursor: pointer; font-weight: 500; color: var(--text-main); display: flex; align-items: center; gap: 6px;">
                 <span>📐 Geometric Outline:</span>
               </label>
-              <span id="atom-arrangement-type" style="font-size: 11px; font-family: 'JetBrains Mono', monospace; color: var(--accent-cyan);">[Tetrahedral • 4 regions]</span>
+              <span id="atom-arrangement-type" style="font-size: 12px; font-family: 'JetBrains Mono', monospace; color: var(--accent-cyan);">[Tetrahedral • 4 regions]</span>
             </div>
             <input type="checkbox" id="atom-arrangement-check" style="cursor: pointer; width: 18px; height: 18px;">
           </div>
@@ -423,7 +519,7 @@
               <label for="atom-nodal-check" style="cursor: pointer; font-weight: 500; color: var(--text-main); display: flex; align-items: center; gap: 6px;">
                 <span>⚪ Nodal Surfaces:</span>
               </label>
-              <span id="atom-nodal-type" style="font-size: 11px; font-family: 'JetBrains Mono', monospace; color: var(--accent-cyan);">[2 Nodal Planes]</span>
+              <span id="atom-nodal-type" style="font-size: 12px; font-family: 'JetBrains Mono', monospace; color: var(--accent-cyan);">[2 Nodal Planes]</span>
             </div>
             <input type="checkbox" id="atom-nodal-check" style="cursor: pointer; width: 18px; height: 18px;">
           </div>
@@ -437,7 +533,7 @@
           <span>⚡</span>
         </div>
 
-        <div style="font-size: 11px; color: var(--text-muted);">Atomic & Hybrid Orbitals:</div>
+        <div style="font-size: 12.5px; color: var(--text-muted);">Atomic & Hybrid Orbitals:</div>
 
         <div class="orbital-grid">
           <div class="orbital-btn active" data-orbital="none">
@@ -533,7 +629,7 @@
             <span>Transparency / Opacity:</span>
             <span class="value" id="orb-opacity-val">0.15</span>
           </div>
-          <input type="range" id="orbital-opacity-slider" min="0.05" max="0.95" step="0.05" value="0.15">
+          <input type="range" id="orbital-opacity-slider" min="0.05" max="0.95" step="0.05" value="0.25">
         </div>
 
         <div class="form-row" id="selected-outline-sync-row">
@@ -591,30 +687,39 @@
 
       <!-- Interaction Mode Bar in Viewport Top Right -->
       <div class="hud-mode-bar" id="hud-mode-bar">
-        <button class="mode-tab active" id="mode-orbit-btn" title="Orbit Mode: Inspect & Rotate 3D View">
-          <span>🔄 Orbit</span>
+        <button class="mode-tab active" id="mode-orbit-btn" title="Demos Mode: Inspect textbook molecules & orbitals (1 / D)">
+          <span>🧪 Demos</span>
         </button>
-        <button class="mode-tab" id="mode-build-btn" title="Build Mode: Click lobes to attach, manual atom add & edit properties">
+        <button class="mode-tab" id="mode-build-btn" title="Build Mode: Click lobes to attach, manual atom add & bond (2 / B)">
           <span>🔨 Build</span>
         </button>
-        <button class="mode-tab" id="mode-box-btn" title="Multiple Selection: Box select, batch edit & bridge π-orbitals">
-          <span>⬚ Multiple Selection</span>
+        <button class="mode-tab" id="mode-box-btn" title="Configure Mode: Select & batch edit properties & orbitals (3 / C)">
+          <span>⚙️ Configure</span>
+        </button>
+        <button class="mode-tab" id="hud-mo-btn" title="Toggle Molecular Orbital (MO) Energy Diagram (4 / M)">
+          <span>📊 MO Diagram</span>
+          <span class="hotkey-pill">4</span>
         </button>
       </div>
     </div>
 
-    <!-- Bottom Control Helper Tips -->
-    <div class="control-tips">
-      <span><span class="kbd">Ctrl+Z</span> Undo</span>
-      <span><span class="kbd">Ctrl+Y</span> Redo</span>
-      <span><span class="kbd">Left Click</span> Select Atom</span>
-      <span><span class="kbd">Shift + DblClick</span> Select All of Type</span>
-      <span><span class="kbd">Ctrl + Click</span> Multi-Select</span>
-      <span><span class="kbd">Shift + Drag</span> Box Select</span>
-      <span><span class="kbd">Del</span> Delete</span>
-      <span><span class="kbd">Left Drag</span> Orbit</span>
-      <span><span class="kbd">Right Drag</span> Pan</span>
-      <span><span class="kbd">Scroll</span> Zoom</span>
+    <!-- Bottom-Right 3D Orientation Axes Gizmo -->
+    <div id="virtual-trackball" class="virtual-trackball orientation-gizmo-card" title="3D Orientation Axes: Drag to rotate view, click an axis to align">
+      <div class="trackball-header">
+        <span>🧭 Orientation</span>
+        <span class="trackball-hint">Drag / Click Axes</span>
+      </div>
+      <div class="gizmo-canvas-wrapper" style="position: relative; width: 130px; height: 130px; margin: 0 auto; display: flex; align-items: center; justify-content: center;">
+        <canvas id="orientation-gizmo-canvas" width="130" height="130" style="cursor: grab; border-radius: 8px;"></canvas>
+        <button class="trackball-btn trackball-center" id="tb-center" title="Center View (Space / R)" style="position: absolute; bottom: 2px; right: 2px; width: 22px; height: 22px; font-size: 11px; z-index: 5;">⟲</button>
+      </div>
+      <!-- Directional fallback buttons kept in DOM for keyboard/test accessibility -->
+      <div class="trackball-disc" id="trackball-disc" style="display: none;">
+        <button class="trackball-btn trackball-up" id="tb-up" title="Tilt Up (↑)">▲</button>
+        <button class="trackball-btn trackball-left" id="tb-left" title="Orbit Left (←)">◀</button>
+        <button class="trackball-btn trackball-right" id="tb-right" title="Orbit Right (→)">▶</button>
+        <button class="trackball-btn trackball-down" id="tb-down" title="Tilt Down (↓)">▼</button>
+      </div>
     </div>
 
     <!-- Bottom-Right Live Molecular Formula Card -->
@@ -630,6 +735,77 @@
     <!-- Floating Feedback Toast -->
     <div id="toast-notification" class="toast-notification"></div>
   </main>
+
+  <!-- Right-Hand Molecular Orbital (MO) Energy Diagram Panel -->
+  <aside id="mo-panel" class="collapsed"></aside>
+
+  <!-- Help & Controls Modal Guide -->
+  <div id="help-modal" class="modal-backdrop" style="display: none;">
+    <div class="modal-window">
+      <div class="modal-header">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span style="font-size: 18px;">💡</span>
+          <h2 style="font-size: 15px; font-weight: 700; margin: 0; color: var(--text-main);">ChemOrbital 3D — Controls & Shortcuts Guide</h2>
+        </div>
+        <button class="modal-close-btn" id="help-modal-close" title="Close Guide (Esc)">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="help-section">
+          <h3>Interaction Modes & Hotkeys</h3>
+          <div class="help-grid">
+            <div><span class="kbd">1</span> / <span class="kbd">D</span></div>
+            <div><strong>🧪 Demos Mode:</strong> Explore textbook organic, inorganic, and orbital gallery models with free 3D rotation.</div>
+            <div><span class="kbd">2</span> / <span class="kbd">B</span></div>
+            <div><strong>🔨 Build Mode:</strong> Click orbital lobes to attach atoms with Quick Build, use manual build, and create covalent σ or π/δ bonds. Hold & drag mouse to box-select multiple atoms.</div>
+            <div><span class="kbd">3</span> / <span class="kbd">C</span></div>
+            <div><strong>⚙️ Configure Mode:</strong> Select 1 or multiple atoms to customize properties (charge, radius, rotation with bond snap points, display orbital, styling, outlines, nodals).</div>
+            <div><span class="kbd">4</span> / <span class="kbd">M</span></div>
+            <div><strong>📊 Molecular Orbital (MO) Panel:</strong> Toggle quantum energy diagram, electron configuration & bond order.</div>
+          </div>
+        </div>
+
+        <div class="help-section">
+          <h3>3D Viewport & Camera Navigation</h3>
+          <div class="help-grid">
+            <div><span class="kbd">↑</span> <span class="kbd">↓</span> <span class="kbd">←</span> <span class="kbd">→</span></div>
+            <div><strong>Arrow Keys:</strong> Pan and shift the 3D camera smoothly in real time.</div>
+            <div><span class="kbd">Space</span> / <span class="kbd">R</span></div>
+            <div><strong>Center Camera:</strong> Reset 3D camera view to origin.</div>
+            <div><strong>🧭 Orientation Gizmo</strong></div>
+            <div><strong>3D Rotation Axes:</strong> Drag gizmo to rotate view; click any axis node (+X, −X, +Y, −Y, +Z, −Z) to snap camera into orthogonal view.</div>
+            <div><strong>Left Drag</strong></div>
+            <div>Orbit camera in Demos mode, or box-select multiple atoms in Build / Configure mode.</div>
+            <div><strong>Right Drag</strong></div>
+            <div>Pan camera across the 3D viewport.</div>
+            <div><strong>Mouse Wheel</strong></div>
+            <div>Zoom in / zoom out.</div>
+          </div>
+        </div>
+
+        <div class="help-section">
+          <h3>Atom Selection & Editing</h3>
+          <div class="help-grid">
+            <div><strong>Left Click</strong></div>
+            <div>Select atom or click orbital lobe to attach with Quick Build.</div>
+            <div><span class="kbd">Hold & Drag</span></div>
+            <div>Draw marquee box to select multiple atoms (Build & Configure modes).</div>
+            <div><span class="kbd">Ctrl + Click</span></div>
+            <div>Toggle atom into/out of current multi-selection.</div>
+            <div><span class="kbd">Shift + Double Click</span></div>
+            <div>Select all atoms of the same element (e.g. all Hydrogens).</div>
+            <div><span class="kbd">Double Click</span></div>
+            <div>Focus and zoom camera directly onto selected atom.</div>
+            <div><span class="kbd">Ctrl + Z</span></div>
+            <div>Undo last change (supports up to 3 reversals).</div>
+            <div><span class="kbd">Ctrl + Y</span></div>
+            <div>Redo change.</div>
+            <div><span class="kbd">Delete</span> / <span class="kbd">Backspace</span></div>
+            <div>Delete selected atom(s).</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <!-- Application Bootstrap (Native ES Module) -->
   <script type="module" src="./src/main.js"></script>

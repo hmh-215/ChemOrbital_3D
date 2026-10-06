@@ -3,7 +3,7 @@
  */
 
 export const ELEMENT_DEFAULTS = {
-  H: { color: '#ffffff', radius: 0.26, defaultOrbital: 's' },
+  H: { color: '#cbd5e1', radius: 0.26, defaultOrbital: 's' },
   C: { color: '#334155', radius: 0.42, defaultOrbital: 'sp3' },
   O: { color: '#ef4444', radius: 0.44, defaultOrbital: 'sp3' },
   N: { color: '#3b82f6', radius: 0.40, defaultOrbital: 'sp3' },

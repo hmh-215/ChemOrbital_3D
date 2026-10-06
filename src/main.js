@@ -7,28 +7,66 @@ import { MoleculeViewModel } from './viewmodels/MoleculeViewModel.js';
 import { ThreeSceneView } from './views/three/ThreeSceneView.js';
 import { UIController } from './views/ui/UIController.js';
 
+import * as ChemistryMath from './models/ChemistryMath.js';
+
+// ?preset=<alias> -> preset key understood by MoleculeViewModel.loadPreset()
+const URL_PRESET_ALIASES = {
+  'c2h4': 'preset-sp2-c2h4', 'sp2-c2h4': 'preset-sp2-c2h4',
+  'c2h2': 'preset-sp-c2h2', 'sp-c2h2': 'preset-sp-c2h2',
+  'benzene': 'preset-benzene',
+  'ch4': 'preset-sp3-ch4', 'sp3-ch4': 'preset-sp3-ch4',
+  'd': 'preset-d-orbitals', 'd-orbitals': 'preset-d-orbitals',
+  'so2': 'preset-so2', 'preset-so2': 'preset-so2'
+};
+const VALID_MODES = ['orbit', 'build', 'box'];
+
+function applyUrlParameters(viewModel) {
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const presetParam = params.get('preset') || params.get('demo');
+
+    if (presetParam === 'antibonding') {
+      viewModel.loadPreset('preset-sp2-c2h4');
+      viewModel.clearBridges();
+      viewModel.rotateSelectedAtomsAxisDelta('x', 180);
+      viewModel.bridgeSelectedOrbitals();
+    } else if (presetParam && URL_PRESET_ALIASES[presetParam]) {
+      viewModel.loadPreset(URL_PRESET_ALIASES[presetParam]);
+    }
+
+    const modeParam = params.get('mode');
+    if (VALID_MODES.includes(modeParam)) {
+      viewModel.setInteractionMode(modeParam);
+    }
+
+    // ?theme=dark|light overrides the (light) default
+    const themeParam = params.get('theme');
+    if (themeParam === 'dark' || themeParam === 'light') {
+      viewModel.setTheme(themeParam === 'light');
+    }
+  } catch (err) {
+    console.warn('URL parameter parse error:', err);
+  }
+}
+
 function init() {
   const container = document.getElementById('viewport-container');
   const marquee = document.getElementById('selection-marquee');
 
-  // 1. Initialize ViewModel
+  // 1. ViewModel (owns the Model)
   const viewModel = new MoleculeViewModel();
 
-  // 2. Initialize Views
+  // 2. Views
   const threeScene = new ThreeSceneView(container, marquee, viewModel);
-  const uiController = new UIController(viewModel);
+  const uiController = new UIController(viewModel, threeScene);
 
-  // Expose global reference for testing and browser console
-  window.__app = {
-    viewModel,
-    threeScene,
-    uiController,
-    vm: viewModel
-  };
+  // Expose global references for testing and the browser console
+  window.__app = { viewModel, threeScene, uiController, vm: viewModel, ChemistryMath };
   window.app = window.__app;
   window.vm = viewModel;
+  window.ChemistryMath = ChemistryMath;
 
-  // 3. Initialize default state: Atom with no orbital showing at first
+  // 3. Default state: a single carbon atom with no orbital shown yet
   const defaultAtom = viewModel.addAtom({
     name: 'C1',
     element: 'C',
@@ -40,41 +78,11 @@ function init() {
   viewModel.selectAtom(defaultAtom.id);
   viewModel.setInteractionMode('orbit');
 
-  // 4. URL query parameter support for presets
-  try {
-    const urlParams = new URLSearchParams(window.location.search);
-    const presetParam = urlParams.get('preset') || urlParams.get('demo');
-    if (presetParam) {
-      if (presetParam === 'c2h4' || presetParam === 'sp2-c2h4') {
-        viewModel.loadPreset('preset-sp2-c2h4');
-      } else if (presetParam === 'c2h2' || presetParam === 'sp-c2h2') {
-        viewModel.loadPreset('preset-sp-c2h2');
-      } else if (presetParam === 'benzene') {
-        viewModel.loadPreset('preset-benzene');
-      } else if (presetParam === 'ch4' || presetParam === 'sp3-ch4') {
-        viewModel.loadPreset('preset-sp3-ch4');
-      } else if (presetParam === 'd-orbitals' || presetParam === 'd') {
-        viewModel.loadPreset('preset-d-orbitals');
-      } else if (presetParam === 'so2' || presetParam === 'preset-so2') {
-        viewModel.loadPreset('preset-so2');
-      } else if (presetParam === 'antibonding') {
-        viewModel.loadPreset('preset-sp2-c2h4');
-        viewModel.clearBridges();
-        const c2 = viewModel.atoms.find(a => a.name === 'C2');
-        if (c2) {
-          viewModel.rotateSelectedAtomsAxisDelta('x', 180);
-        }
-        viewModel.bridgeSelectedOrbitals();
-      }
-    }
+  // 4. URL query parameters (presets, mode, theme)
+  applyUrlParameters(viewModel);
 
-    const modeParam = urlParams.get('mode');
-    if (modeParam && ['orbit', 'build', 'box'].includes(modeParam)) {
-      viewModel.setInteractionMode(modeParam);
-    }
-  } catch (err) {
-    console.warn('URL preset parse error:', err);
-  }
+  // 5. Explicitly synchronize initial theme across 3D scene and UI
+  viewModel.emit('themeChanged', viewModel.isLight);
 }
 
 if (document.readyState === 'loading') {

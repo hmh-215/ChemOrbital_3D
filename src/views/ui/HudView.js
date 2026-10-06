@@ -21,20 +21,24 @@ export class HudView {
   }
 
   updateMode(mode) {
-    if (this.modeOrbitBtn) this.modeOrbitBtn.classList.toggle('active', mode === 'orbit');
-    if (this.modeBuildBtn) this.modeBuildBtn.classList.toggle('active', mode === 'build');
-    if (this.modeBoxBtn) this.modeBoxBtn.classList.toggle('active', mode === 'box');
+    const isOrbit = (mode === 'orbit' || mode === 'demos');
+    const isBuild = (mode === 'build');
+    const isBox = (mode === 'box' || mode === 'configure');
 
-    document.body.classList.remove('mode-orbit', 'mode-build', 'mode-box');
-    document.body.classList.add(`mode-${mode}`);
+    if (this.modeOrbitBtn) this.modeOrbitBtn.classList.toggle('active', isOrbit);
+    if (this.modeBuildBtn) this.modeBuildBtn.classList.toggle('active', isBuild);
+    if (this.modeBoxBtn) this.modeBoxBtn.classList.toggle('active', isBox);
+
+    document.body.classList.remove('mode-orbit', 'mode-demos', 'mode-build', 'mode-box', 'mode-configure');
+    document.body.classList.add(isOrbit ? 'mode-orbit' : isBuild ? 'mode-build' : 'mode-box');
 
     if (this.sidebarModeBanner) {
-      if (mode === 'orbit') {
-        this.sidebarModeBanner.innerHTML = '<span>🔄</span><div><strong>Orbit Mode:</strong> Inspect 3D orbitals & molecules. Use teaching demos below.</div>';
-      } else if (mode === 'build') {
-        this.sidebarModeBanner.innerHTML = '<span>⚡</span><div><strong>Build Mode:</strong> Click any orbital lobe in 3D to attach atoms & form bonds.</div>';
-      } else if (mode === 'box') {
-        this.sidebarModeBanner.innerHTML = '<span>⬚</span><div><strong>Box Select Mode:</strong> Drag on canvas to select multiple atoms and form π-bonds.</div>';
+      if (isOrbit) {
+        this.sidebarModeBanner.innerHTML = '<span>🧪</span><div><strong>Demos Mode:</strong> Explore textbook organic, inorganic, and orbital gallery models.</div>';
+      } else if (isBuild) {
+        this.sidebarModeBanner.innerHTML = '<span>🔨</span><div><strong>Build Mode:</strong> Quick-attach to orbital lobes, add atoms manually & form bonds. Hold & drag to box-select.</div>';
+      } else if (isBox) {
+        this.sidebarModeBanner.innerHTML = '<span>⚙️</span><div><strong>Configure Mode:</strong> Select 1 or multiple atoms to customize properties and orbital states in batch.</div>';
       }
     }
   }
@@ -61,7 +65,13 @@ export class HudView {
 
   showToast(message, icon = '✨') {
     if (!this.toastEl) return;
-    this.toastEl.innerHTML = `<span style="font-size: 15px;">${icon}</span><span>${message}</span>`;
+    this.toastEl.replaceChildren();
+    const iconEl = document.createElement('span');
+    iconEl.style.fontSize = '15px';
+    iconEl.textContent = icon;
+    const msgEl = document.createElement('span');
+    msgEl.textContent = message;
+    this.toastEl.append(iconEl, msgEl);
     this.toastEl.classList.add('show');
 
     if (this.toastTimeout) clearTimeout(this.toastTimeout);

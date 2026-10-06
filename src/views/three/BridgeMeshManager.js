@@ -52,40 +52,40 @@ export class BridgeMeshManager {
     const dist = pA.distanceTo(pB);
     if (dist < 0.2 || dist > 6.5) return;
 
-    const norm = axisVector ? axisVector.clone().normalize() : new THREE.Vector3(0, 0, 1);
-    const hPeak = 1.05; // Center of demi-sphere lobe head
+    const bondDir = pB.clone().sub(pA).normalize();
 
-    let topA, topB, botA, botB;
-
-    if (lobePairs && lobePairs.length >= 2) {
-      topA = lobePairs[0].posA.clone();
-      topB = lobePairs[0].posB.clone();
-      botA = lobePairs[1].posA.clone();
-      botB = lobePairs[1].posB.clone();
-    } else {
-      topA = pA.clone().add(norm.clone().multiplyScalar(hPeak));
-      topB = pB.clone().add(norm.clone().multiplyScalar(hPeak));
-      botA = pA.clone().sub(norm.clone().multiplyScalar(hPeak));
-      botB = pB.clone().sub(norm.clone().multiplyScalar(hPeak));
+    // Determine the transverse unit normal vector strictly orthogonal to the bond axis
+    let norm = axisVector ? axisVector.clone() : new THREE.Vector3(0, 0, 1);
+    norm.sub(bondDir.clone().multiplyScalar(norm.dot(bondDir)));
+    if (norm.lengthSq() < 1e-4) {
+      const fallback = Math.abs(bondDir.z) < 0.9 ? new THREE.Vector3(0, 0, 1) : new THREE.Vector3(0, 1, 0);
+      norm = fallback.sub(bondDir.clone().multiplyScalar(fallback.dot(bondDir)));
     }
+    norm.normalize();
 
-    // 1. Top Lobe Bridge (+ phase, Red)
-    const topMid = topA.clone().add(topB).multiplyScalar(0.5).add(norm.clone().multiplyScalar(0.18));
-    const topCurve = new THREE.CatmullRomCurve3([topA, topMid, topB]);
+    // In MO theory, the pi-bonding molecular orbital runs strictly parallel to the bond axis
+    const R_pi = 1.05; // Standard lateral distance matching atomic lobe heads
+
+    const topA = pA.clone().add(norm.clone().multiplyScalar(R_pi));
+    const topB = pB.clone().add(norm.clone().multiplyScalar(R_pi));
+    const botA = pA.clone().sub(norm.clone().multiplyScalar(R_pi));
+    const botB = pB.clone().sub(norm.clone().multiplyScalar(R_pi));
+
+    // 1. Top Lobe Bridge (+ phase, Red) - straight cylindrical cloud strictly parallel to bond axis
+    const topCurve = new THREE.LineCurve3(topA, topB);
     const topTubeGeom = new THREE.TubeGeometry(topCurve, 24, 0.36, 16, false);
     const topTubeMat = this.orbitalFactory.createOrbitalMaterial(COLOR_POS_PHASE, Math.max(0.22, opacity * 1.4));
     const topTubeMesh = new THREE.Mesh(topTubeGeom, topTubeMat);
     this.bridgeGroup.add(topTubeMesh);
 
-    // 2. Bottom Lobe Bridge (- phase, Blue)
-    const botMid = botA.clone().add(botB).multiplyScalar(0.5).sub(norm.clone().multiplyScalar(0.18));
-    const botCurve = new THREE.CatmullRomCurve3([botA, botMid, botB]);
+    // 2. Bottom Lobe Bridge (- phase, Blue) - straight cylindrical cloud strictly parallel to bond axis
+    const botCurve = new THREE.LineCurve3(botA, botB);
     const botTubeGeom = new THREE.TubeGeometry(botCurve, 24, 0.36, 16, false);
     const botTubeMat = this.orbitalFactory.createOrbitalMaterial(COLOR_NEG_PHASE, Math.max(0.22, opacity * 1.4));
     const botTubeMesh = new THREE.Mesh(botTubeGeom, botTubeMat);
     this.bridgeGroup.add(botTubeMesh);
 
-    // 3. Central Axis Dashed Guide Lines (Green)
+    // 3. Central Axis Dashed Guide Lines (Green) - strictly parallel to bond axis
     const dashedMat = new THREE.LineDashedMaterial({
       color: 0x84cc16,
       dashSize: 0.12,
@@ -107,6 +107,7 @@ export class BridgeMeshManager {
     // 4. Billboard π Label Sprite
     if (labelText) {
       const sprite = this.makeTextSprite(labelText, '#84cc16');
+      const topMid = topA.clone().add(topB).multiplyScalar(0.5);
       sprite.position.copy(topMid.clone().add(norm.clone().multiplyScalar(0.35)));
       this.bridgeGroup.add(sprite);
     }

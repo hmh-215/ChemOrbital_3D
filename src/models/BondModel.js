@@ -5,10 +5,15 @@
 
 export class BondModel {
   constructor(atomAId, atomBId, customColor = null, id = null) {
-    this.id = id || ('bond_' + atomAId + '_' + atomBId + '_' + Math.random().toString(36).substr(2, 5));
+    this.id = id || ('bond_' + atomAId + '_' + atomBId + '_' + Math.random().toString(36).slice(2, 7));
     this.atomAId = atomAId;
     this.atomBId = atomBId;
     this.customColor = customColor;
+    this.isBroken = false;
+  }
+
+  setBroken(broken) {
+    this.isBroken = !!broken;
   }
 
   connects(atomId1, atomId2) {

@@ -5,7 +5,7 @@
 
 export class AtomModel {
   constructor(options = {}) {
-    this.id = options.id || ('atom_' + Math.random().toString(36).substr(2, 9));
+    this.id = options.id || ('atom_' + Math.random().toString(36).slice(2, 11));
     this.name = options.name || 'C1';
     this.element = (options.element || 'C').toUpperCase();
     this.color = options.color || '#334155';
@@ -13,11 +13,21 @@ export class AtomModel {
     this.orbitalType = options.orbitalType || 'none';
     this.showArrangement = options.showArrangement || false;
     this.showNodalPlanes = options.showNodalPlanes || false;
+    this.phase = options.phase !== undefined ? options.phase : 1; // 1 = + (Red), -1 = - (Blue)
+    this.charge = options.charge !== undefined ? parseInt(options.charge, 10) : 0; // Formal charge (-3 to +3)
     this.isSelected = options.isSelected || false;
 
     // Vector3 and Euler for position & rotation
     this.position = options.position ? options.position.clone() : new THREE.Vector3(0, 0, 0);
     this.rotation = options.rotation ? options.rotation.clone() : new THREE.Euler(0, 0, 0, 'XYZ');
+  }
+
+  setCharge(charge) {
+    this.charge = Math.max(-3, Math.min(3, parseInt(charge, 10) || 0));
+  }
+
+  setPhase(phase) {
+    this.phase = phase >= 0 ? 1 : -1;
   }
 
   setPosition(x, y, z) {
@@ -67,7 +77,7 @@ export class AtomModel {
 
   clone() {
     return new AtomModel({
-      id: 'atom_' + Math.random().toString(36).substr(2, 9),
+      id: 'atom_' + Math.random().toString(36).slice(2, 11),
       name: this.name,
       element: this.element,
       color: this.color,
@@ -75,6 +85,8 @@ export class AtomModel {
       orbitalType: this.orbitalType,
       showArrangement: this.showArrangement,
       showNodalPlanes: this.showNodalPlanes,
+      phase: this.phase,
+      charge: this.charge,
       position: this.position.clone(),
       rotation: this.rotation.clone(),
       isSelected: false

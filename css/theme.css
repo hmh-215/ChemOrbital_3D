@@ -1,43 +1,61 @@
 /* Mode Visibility Configuration for Sidebar Panels */
 body.mode-orbit #teaching-presets-card,
-body.mode-orbit #atoms-roster-card {
+body.mode-demos #teaching-presets-card,
+body.mode-orbit #atoms-roster-card,
+body.mode-demos #atoms-roster-card {
   display: flex !important;
 }
 body.mode-orbit #quick-build-card,
 body.mode-orbit #manual-build-card,
+body.mode-orbit #bonding-tools-card,
+body.mode-orbit #multi-select-card,
 body.mode-orbit #atom-inspector,
 body.mode-orbit #orbital-select-card,
 body.mode-orbit #orbital-styling-card,
-body.mode-orbit #multi-select-card {
+body.mode-demos #quick-build-card,
+body.mode-demos #manual-build-card,
+body.mode-demos #bonding-tools-card,
+body.mode-demos #multi-select-card,
+body.mode-demos #atom-inspector,
+body.mode-demos #orbital-select-card,
+body.mode-demos #orbital-styling-card {
   display: none !important;
 }
 
 body.mode-build #quick-build-card,
 body.mode-build #manual-build-card,
-body.mode-build #atom-inspector,
-body.mode-build #orbital-select-card,
-body.mode-build #orbital-styling-card,
+body.mode-build #bonding-tools-card,
 body.mode-build #atoms-roster-card {
   display: flex !important;
 }
-body.mode-build #teaching-presets-card {
-  display: none !important;
-}
-body.mode-build:not(.has-multi-selection) #multi-select-card {
+body.mode-build #teaching-presets-card,
+body.mode-build #multi-select-card,
+body.mode-build #atom-inspector,
+body.mode-build #orbital-select-card,
+body.mode-build #orbital-styling-card {
   display: none !important;
 }
 
 body.mode-box #multi-select-card,
-body.has-multi-selection #multi-select-card,
+body.mode-configure #multi-select-card,
 body.mode-box #atom-inspector,
-body.mode-box #atoms-roster-card {
+body.mode-configure #atom-inspector,
+body.mode-box #orbital-select-card,
+body.mode-configure #orbital-select-card,
+body.mode-box #orbital-styling-card,
+body.mode-configure #orbital-styling-card,
+body.mode-box #atoms-roster-card,
+body.mode-configure #atoms-roster-card {
   display: flex !important;
 }
 body.mode-box #teaching-presets-card,
 body.mode-box #quick-build-card,
 body.mode-box #manual-build-card,
-body.mode-box #orbital-select-card,
-body.mode-box #orbital-styling-card {
+body.mode-box #bonding-tools-card,
+body.mode-configure #teaching-presets-card,
+body.mode-configure #quick-build-card,
+body.mode-configure #manual-build-card,
+body.mode-configure #bonding-tools-card {
   display: none !important;
 }
 
@@ -135,6 +153,37 @@ body.theme-light .mode-tab.active {
   background: #0284c7;
   color: #ffffff !important;
   box-shadow: 0 2px 8px rgba(2, 132, 199, 0.35);
+}
+body.theme-light #hud-mo-btn {
+  border-color: #cbd5e1;
+  color: #0f172a !important;
+}
+body.theme-light #hud-mo-btn span {
+  color: #0f172a !important;
+}
+body.theme-light #hud-mo-btn .hotkey-pill {
+  background: #e2e8f0;
+  border-color: #cbd5e1;
+  color: #0f172a;
+}
+body.theme-light #hud-mo-btn:hover {
+  background: #f1f5f9;
+  color: #0f172a !important;
+}
+body.theme-light #hud-mo-btn.active {
+  background: #e0f2fe !important;
+  color: #0f172a !important;
+  border-color: #0284c7 !important;
+  box-shadow: 0 1px 4px rgba(2, 132, 199, 0.2);
+}
+body.theme-light #hud-mo-btn.active span {
+  color: #0f172a !important;
+  font-weight: 700;
+}
+body.theme-light #hud-mo-btn.active .hotkey-pill {
+  background: #0284c7;
+  color: #ffffff !important;
+  border-color: #0284c7;
 }
 body.theme-light .btn {
   background: #f8fafc;
@@ -281,4 +330,71 @@ body.theme-light .hud-formula-text {
 }
 body.theme-light .hud-formula-sub {
   color: #334155 !important;
+}
+
+/* ---- Molecular Orbital panel (light) ---- */
+body.theme-light #mo-panel {
+  background: #ffffff;
+  border-left-color: #e2e8f0;
+  box-shadow: -4px 0 24px rgba(0, 0, 0, 0.06);
+}
+body.theme-light .mo-header {
+  background: #f8fafc;
+}
+body.theme-light .mo-close-btn {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+  color: #334155;
+}
+body.theme-light .mo-mode-bar {
+  background: #f1f5f9;
+  border-color: #e2e8f0;
+}
+body.theme-light .mo-mode-tab.active {
+  background: #ffffff;
+  color: #0284c7;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
+}
+body.theme-light .mo-charge-stepper-row,
+body.theme-light .mo-metric-item {
+  background: #f1f5f9;
+  border-color: #e2e8f0;
+}
+body.theme-light .stepper-btn {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+  color: #0f172a;
+}
+body.theme-light .stepper-btn:hover {
+  background: #e2e8f0;
+}
+body.theme-light .charge-display-pill {
+  background: #ffffff;
+  border-color: #cbd5e1;
+}
+body.theme-light .reset-charge-btn,
+body.theme-light .quick-charge-btn {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+}
+body.theme-light .mo-scroll-content::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.2);
+}
+/* The energy-level SVG is drawn for a dark canvas, so .mo-svg-container intentionally stays dark. */
+
+/* ---- Help modal (light) ---- */
+body.theme-light .modal-backdrop {
+  background: rgba(15, 23, 42, 0.45);
+}
+body.theme-light .modal-window {
+  background: #ffffff;
+  border-color: #e2e8f0;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+}
+body.theme-light .modal-header {
+  background: #f8fafc;
+  border-bottom-color: #e2e8f0;
+}
+body.theme-light .modal-close-btn {
+  border-color: #cbd5e1;
 }

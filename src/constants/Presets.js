@@ -28,7 +28,7 @@ export const PRESET_DEFINITIONS = {
     tetraVectors.forEach((v, idx) => {
       const h = vm.addAtom({
         name: 'H' + (idx + 1),
-        color: '#ffffff',
+        color: '#cbd5e1',
         radius: 0.26,
         orbitalType: 's',
         position: v.clone().multiplyScalar(bondDist)
@@ -69,10 +69,10 @@ export const PRESET_DEFINITIONS = {
     const cos60 = 0.5;
     const sin60 = Math.sin(Math.PI / 3); // Math.sqrt(3) / 2 ≈ 0.866025
 
-    const h1 = vm.addAtom({ name: 'H1', color: '#ffffff', radius: 0.26, orbitalType: 's', position: new THREE.Vector3(-1.2 - hDist * cos60,  hDist * sin60, 0) });
-    const h2 = vm.addAtom({ name: 'H2', color: '#ffffff', radius: 0.26, orbitalType: 's', position: new THREE.Vector3(-1.2 - hDist * cos60, -hDist * sin60, 0) });
-    const h3 = vm.addAtom({ name: 'H3', color: '#ffffff', radius: 0.26, orbitalType: 's', position: new THREE.Vector3( 1.2 + hDist * cos60,  hDist * sin60, 0) });
-    const h4 = vm.addAtom({ name: 'H4', color: '#ffffff', radius: 0.26, orbitalType: 's', position: new THREE.Vector3( 1.2 + hDist * cos60, -hDist * sin60, 0) });
+    const h1 = vm.addAtom({ name: 'H1', color: '#cbd5e1', radius: 0.26, orbitalType: 's', position: new THREE.Vector3(-1.2 - hDist * cos60,  hDist * sin60, 0) });
+    const h2 = vm.addAtom({ name: 'H2', color: '#cbd5e1', radius: 0.26, orbitalType: 's', position: new THREE.Vector3(-1.2 - hDist * cos60, -hDist * sin60, 0) });
+    const h3 = vm.addAtom({ name: 'H3', color: '#cbd5e1', radius: 0.26, orbitalType: 's', position: new THREE.Vector3( 1.2 + hDist * cos60,  hDist * sin60, 0) });
+    const h4 = vm.addAtom({ name: 'H4', color: '#cbd5e1', radius: 0.26, orbitalType: 's', position: new THREE.Vector3( 1.2 + hDist * cos60, -hDist * sin60, 0) });
 
     vm.addBond(c1.id, h1.id);
     vm.addBond(c1.id, h2.id);
@@ -115,8 +115,8 @@ export const PRESET_DEFINITIONS = {
 
     vm.addBond(c1.id, c2.id);
 
-    const h1 = vm.addAtom({ name: 'H1', color: '#ffffff', radius: 0.26, orbitalType: 's', position: new THREE.Vector3(-2.6, 0, 0) });
-    const h2 = vm.addAtom({ name: 'H2', color: '#ffffff', radius: 0.26, orbitalType: 's', position: new THREE.Vector3(2.6, 0, 0) });
+    const h1 = vm.addAtom({ name: 'H1', color: '#cbd5e1', radius: 0.26, orbitalType: 's', position: new THREE.Vector3(-2.6, 0, 0) });
+    const h2 = vm.addAtom({ name: 'H2', color: '#cbd5e1', radius: 0.26, orbitalType: 's', position: new THREE.Vector3(2.6, 0, 0) });
 
     vm.addBond(c1.id, h1.id);
     vm.addBond(c2.id, h2.id);
@@ -152,7 +152,7 @@ export const PRESET_DEFINITIONS = {
 
       const h = vm.addAtom({
         name: 'H' + (i + 1),
-        color: '#ffffff',
+        color: '#cbd5e1',
         radius: 0.26,
         orbitalType: 's',
         position: new THREE.Vector3(Math.cos(theta) * R_h, Math.sin(theta) * R_h, 0)
@@ -208,7 +208,7 @@ export const PRESET_DEFINITIONS = {
       const hAxPos = new THREE.Vector3(cPos.x, cPos.y + (isUp ? 1.25 : -1.25), cPos.z);
       const hAx = vm.addAtom({
         name: `H${i+1}_ax`,
-        color: '#ffffff',
+        color: '#cbd5e1',
         radius: 0.24,
         orbitalType: 's',
         position: hAxPos
@@ -225,7 +225,7 @@ export const PRESET_DEFINITIONS = {
       );
       const hEq = vm.addAtom({
         name: `H${i+1}_eq`,
-        color: '#ffffff',
+        color: '#cbd5e1',
         radius: 0.24,
         orbitalType: 's',
         position: hEqPos
@@ -284,8 +284,8 @@ export const PRESET_DEFINITIONS = {
     // Outward hydrogens on C0 and C3
     const h0_out = new THREE.Vector3( 2.70, 0.85, 0.00);
     const h3_out = new THREE.Vector3(-2.70, 0.85, 0.00);
-    const h1_out = vm.addAtom({ name: 'H1_out', color: '#ffffff', radius: 0.24, orbitalType: 's', position: h0_out });
-    const h4_out = vm.addAtom({ name: 'H4_out', color: '#ffffff', radius: 0.24, orbitalType: 's', position: h3_out });
+    const h1_out = vm.addAtom({ name: 'H1_out', color: '#cbd5e1', radius: 0.24, orbitalType: 's', position: h0_out });
+    const h4_out = vm.addAtom({ name: 'H4_out', color: '#cbd5e1', radius: 0.24, orbitalType: 's', position: h3_out });
     vm.addBond(cAtoms[0].id, h1_out.id);
     vm.addBond(cAtoms[3].id, h4_out.id);
 
@@ -300,7 +300,7 @@ export const PRESET_DEFINITIONS = {
       { cIdx: 5, pos: new THREE.Vector3( 1.45, -0.65, -1.90) },
       { cIdx: 5, pos: new THREE.Vector3( 1.45, -1.35, -0.50) }
     ].forEach((hData, i) => {
-      const hBase = vm.addAtom({ name: `H_base${i+1}`, color: '#ffffff', radius: 0.24, orbitalType: 's', position: hData.pos });
+      const hBase = vm.addAtom({ name: `H_base${i+1}`, color: '#cbd5e1', radius: 0.24, orbitalType: 's', position: hData.pos });
       vm.addBond(cAtoms[hData.cIdx].id, hBase.id);
     });
 
@@ -478,8 +478,8 @@ export const PRESET_DEFINITIONS = {
     const vH1 = new THREE.Vector3(-1, -1,  1).normalize();
     const vH2 = new THREE.Vector3( 1, -1, -1).normalize();
 
-    const h1 = vm.addAtom({ name: 'H1', color: '#ffffff', radius: 0.26, orbitalType: 's', position: vH1.clone().multiplyScalar(bondDist) });
-    const h2 = vm.addAtom({ name: 'H2', color: '#ffffff', radius: 0.26, orbitalType: 's', position: vH2.clone().multiplyScalar(bondDist) });
+    const h1 = vm.addAtom({ name: 'H1', color: '#cbd5e1', radius: 0.26, orbitalType: 's', position: vH1.clone().multiplyScalar(bondDist) });
+    const h2 = vm.addAtom({ name: 'H2', color: '#cbd5e1', radius: 0.26, orbitalType: 's', position: vH2.clone().multiplyScalar(bondDist) });
     vm.addBond(o.id, h1.id);
     vm.addBond(o.id, h2.id);
 
@@ -579,5 +579,128 @@ export const PRESET_DEFINITIONS = {
     });
 
     vm.selectAtom(s.id);
+  },
+
+  // Preset 13: Hydrogen Diatomic (H2) - Molecular Orbital Theory & Aufbau Demonstration
+  'preset-h2': (vm) => {
+    vm.clearAll();
+    vm.setCameraView(new THREE.Vector3(0, 1.5, 6.0), new THREE.Vector3(0, 0, 0));
+
+    const h1 = vm.addAtom({
+      name: 'H1',
+      color: '#cbd5e1',
+      radius: 0.28,
+      orbitalType: 's',
+      position: new THREE.Vector3(-1.0, 0, 0)
+    });
+
+    const h2 = vm.addAtom({
+      name: 'H2',
+      color: '#cbd5e1',
+      radius: 0.28,
+      orbitalType: 's',
+      position: new THREE.Vector3(1.0, 0, 0)
+    });
+
+    vm.addBond(h1.id, h2.id);
+
+    vm.selectAtom(h1.id);
+    vm.toggleMOView(true);
+    vm.showToast('H₂ Diatomic MO: Use MO Panel to test Charge -2 (H₂²⁻)', '📊');
+  },
+
+  // Preset 15: Carbon Dioxide (CO2) - Linear Triatomic D∞h with Orthogonal π-Bonds
+  'preset-co2': (vm) => {
+    vm.clearAll();
+    vm.setCameraView(new THREE.Vector3(0, 2.5, 8.5), new THREE.Vector3(0, 0, 0));
+
+    // Linear O = C = O along X axis
+    const c = vm.addAtom({
+      name: 'C',
+      color: '#334155',
+      radius: 0.44,
+      orbitalType: 'sp',
+      position: new THREE.Vector3(0, 0, 0)
+    });
+
+    const dist = 2.1;
+    const o1 = vm.addAtom({
+      name: 'O1',
+      color: '#ef4444',
+      radius: 0.40,
+      orbitalType: 'sp',
+      rotation: new THREE.Euler(0, 0, 0, 'XYZ'),
+      position: new THREE.Vector3(-dist, 0, 0)
+    });
+
+    const o2 = vm.addAtom({
+      name: 'O2',
+      color: '#ef4444',
+      radius: 0.40,
+      orbitalType: 'sp',
+      rotation: new THREE.Euler(0, 0, Math.PI, 'XYZ'),
+      position: new THREE.Vector3(dist, 0, 0)
+    });
+
+    vm.addBond(c.id, o1.id);
+    vm.addBond(c.id, o2.id);
+
+    // Orthogonal π-bonds in Y and Z planes
+    vm.addBridge({
+      atomAId: c.id,
+      atomBId: o1.id,
+      type: 'bonding',
+      normDir: new THREE.Vector3(0, 1, 0),
+      labelText: 'π(py - py)'
+    });
+
+    vm.addBridge({
+      atomAId: c.id,
+      atomBId: o2.id,
+      type: 'bonding',
+      normDir: new THREE.Vector3(0, 0, 1),
+      labelText: 'π(pz - pz)'
+    });
+
+    vm.selectAtom(c.id);
+    vm.toggleMOView(true);
+    vm.showToast('CO₂ Linear Triatomic: D∞h MO with 1πg Nonbonding HOMO', '📊');
+  },
+
+  // Preset 14: Oxygen Diatomic (O2) - Paramagnetic Diradical MO
+  'preset-o2': (vm) => {
+    vm.clearAll();
+    vm.setCameraView(new THREE.Vector3(0, 2.0, 7.5), new THREE.Vector3(0, 0, 0));
+
+    const o1 = vm.addAtom({
+      name: 'O1',
+      color: '#ef4444',
+      radius: 0.42,
+      orbitalType: 'sp2',
+      position: new THREE.Vector3(-1.1, 0, 0)
+    });
+
+    const o2 = vm.addAtom({
+      name: 'O2',
+      color: '#ef4444',
+      radius: 0.42,
+      orbitalType: 'sp2',
+      rotation: new THREE.Euler(0, 0, Math.PI, 'XYZ'),
+      position: new THREE.Vector3(1.1, 0, 0)
+    });
+
+    vm.addBond(o1.id, o2.id);
+
+    vm.addBridge({
+      atomAId: o1.id,
+      atomBId: o2.id,
+      type: 'bonding',
+      normDir: new THREE.Vector3(0, 0, 1),
+      labelText: 'π(pz - pz)'
+    });
+
+    vm.selectAtom(o1.id);
+    vm.toggleMOView(true);
+    vm.showToast('O₂ Diatomic MO: 2 Unpaired e⁻ in π* (Paramagnetic)', '📊');
   }
 };

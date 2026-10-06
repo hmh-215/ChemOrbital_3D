@@ -44,7 +44,7 @@ export class BondMeshManager {
     const record = this.bondMeshes.get(bondId);
     if (!record) return false;
 
-    if (!atomA || !atomB) {
+    if (!atomA || !atomB || record.bondModel.isBroken) {
       record.mesh.visible = false;
       return false;
     }

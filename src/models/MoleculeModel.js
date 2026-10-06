@@ -107,6 +107,10 @@ export class MoleculeModel {
     return this.bonds.some(b => b.connects(atomAId, atomBId));
   }
 
+  getBond(atomAId, atomBId) {
+    return this.bonds.find(b => b.connects(atomAId, atomBId)) || null;
+  }
+
   addBond(atomAId, atomBId, customColor = null) {
     if (atomAId === atomBId) return null;
     const existing = this.bonds.find(b => b.connects(atomAId, atomBId));
@@ -190,6 +194,8 @@ export class MoleculeModel {
         showArrangement: a.showArrangement,
         showNodalPlanes: a.showNodalPlanes,
         isSelected: a.isSelected,
+        phase: a.phase,
+        charge: a.charge,
         position: { x: a.position.x, y: a.position.y, z: a.position.z },
         rotation: { x: a.rotation.x, y: a.rotation.y, z: a.rotation.z, order: a.rotation.order }
       })),
@@ -241,6 +247,8 @@ export class MoleculeModel {
           showArrangement: data.showArrangement,
           showNodalPlanes: data.showNodalPlanes,
           isSelected: data.isSelected,
+          phase: data.phase,
+          charge: data.charge,
           position: new THREE.Vector3(data.position.x, data.position.y, data.position.z),
           rotation: new THREE.Euler(data.rotation.x, data.rotation.y, data.rotation.z, data.rotation.order || 'XYZ')
         });

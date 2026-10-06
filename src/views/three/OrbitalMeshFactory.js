@@ -13,6 +13,36 @@ export class OrbitalMeshFactory {
     this.cachedDLobeGeom = this.createTeardropLobeGeometry(1.50, 0.54, 1.40);
     this.cachedMinorLobeGeom = this.createTeardropLobeGeometry(0.42, 0.20, 1.35);
     this.cachedUnhybridPGeom = this.createTeardropLobeGeometry(1.50, 0.50, 1.35);
+
+    // Geometries shared by every lobe must never be disposed with an individual atom
+    this._sharedGeoms = new Set([
+      this.cachedHybridLobeGeom, this.cachedPLobeGeom, this.cachedDLobeGeom,
+      this.cachedMinorLobeGeom, this.cachedUnhybridPGeom
+    ]);
+    this._matCache = new Map();
+    this.isLight = false;
+  }
+
+  /** Light backgrounds need darker nodal planes / outlines to stay visible. */
+  setTheme(isLight) {
+    this.isLight = !!isLight;
+  }
+
+  get _nodalStyle() {
+    return this.isLight
+      ? { fill: 0x475569, fillOpacity: 0.16, edge: 0x334155, edgeOpacity: 0.7 }
+      : { fill: 0xe2e8f0, fillOpacity: 0.22, edge: 0xffffff, edgeOpacity: 0.65 };
+  }
+
+  /** Free GPU memory of a generated orbital group (shared/cached resources are kept). */
+  disposeObject(root) {
+    if (!root) return;
+    const cached = new Set(this._matCache.values());
+    root.traverse(child => {
+      if (child.geometry && !this._sharedGeoms.has(child.geometry)) child.geometry.dispose();
+      const mats = Array.isArray(child.material) ? child.material : (child.material ? [child.material] : []);
+      mats.forEach(m => { if (!cached.has(m)) m.dispose(); });
+    });
   }
 
   createTeardropLobeGeometry(length = 1.65, maxRadius = 0.62, stemPower = 1.45, segments = 36) {
@@ -42,19 +72,35 @@ export class OrbitalMeshFactory {
     return new THREE.LatheGeometry(points, segments);
   }
 
+  /**
+   * Materials are cached per (colour, opacity): a typical molecule has dozens of lobes
+   * but only two or three distinct materials, so this avoids creating (and compiling /
+   * uploading) one MeshPhysicalMaterial per lobe on every rebuild.
+   */
   createOrbitalMaterial(color, opacity, wireframe = false) {
-    return new THREE.MeshPhysicalMaterial({
-      color: color,
-      transparent: true,
-      opacity: opacity,
-      roughness: 0.15,
-      metalness: 0.05,
-      transmission: 0.2,
-      ior: 1.3,
-      side: THREE.DoubleSide,
-      depthWrite: false,
-      wireframe: wireframe
-    });
+    const key = `${color}|${Number(opacity).toFixed(3)}|${wireframe}`;
+    let mat = this._matCache.get(key);
+    if (!mat) {
+      if (this._matCache.size >= 48) {
+        // The opacity slider can generate many distinct keys; start fresh instead of growing forever
+        this._matCache.forEach(m => m.dispose());
+        this._matCache.clear();
+      }
+      mat = new THREE.MeshPhysicalMaterial({
+        color: color,
+        transparent: true,
+        opacity: opacity,
+        roughness: 0.15,
+        metalness: 0.05,
+        transmission: 0.2,
+        ior: 1.3,
+        side: THREE.DoubleSide,
+        depthWrite: false,
+        wireframe: wireframe
+      });
+      this._matCache.set(key, mat);
+    }
+    return mat;
   }
 
   buildOrientedLobe(dir, isPositivePhase = true, lobeKind = 'hybrid', opacity = 0.15, customScale = 1.0) {
@@ -91,10 +137,11 @@ export class OrbitalMeshFactory {
     planeGroup.name = "planar-nodal-surface";
 
     const planeGeom = new THREE.PlaneGeometry(size, size);
+    const nodal = this._nodalStyle;
     const planeMat = new THREE.MeshBasicMaterial({
-      color: 0xe2e8f0,
+      color: nodal.fill,
       transparent: true,
-      opacity: 0.22,
+      opacity: nodal.fillOpacity,
       side: THREE.DoubleSide,
       depthWrite: false
     });
@@ -104,9 +151,9 @@ export class OrbitalMeshFactory {
     // Clean perimeter border edge lines
     const edgesGeom = new THREE.EdgesGeometry(planeGeom);
     const edgesMat = new THREE.LineBasicMaterial({
-      color: 0xffffff,
+      color: nodal.edge,
       transparent: true,
-      opacity: 0.65
+      opacity: nodal.edgeOpacity
     });
     const edgesMesh = new THREE.LineSegments(edgesGeom, edgesMat);
     planeGroup.add(edgesMesh);
@@ -130,10 +177,11 @@ export class OrbitalMeshFactory {
     const coneGeom = new THREE.ConeGeometry(radius, height, radialSegs, 1, true);
     coneGeom.translate(0, -height / 2, 0);
 
+    const nodal = this._nodalStyle;
     const coneMat = new THREE.MeshBasicMaterial({
-      color: 0xe2e8f0,
+      color: nodal.fill,
       transparent: true,
-      opacity: 0.22,
+      opacity: nodal.fillOpacity,
       side: THREE.DoubleSide,
       depthWrite: false
     });
@@ -147,9 +195,9 @@ export class OrbitalMeshFactory {
     }
     rimGeom.setFromPoints(rimPts);
     const rimMat = new THREE.LineBasicMaterial({
-      color: 0xffffff,
+      color: nodal.edge,
       transparent: true,
-      opacity: 0.65
+      opacity: nodal.edgeOpacity
     });
 
     // Top Cone: apex at origin, opens along +Z
@@ -174,7 +222,7 @@ export class OrbitalMeshFactory {
     outlineGroup.name = "arrangement-outline-group";
 
     const lobeLen = 1.65;
-    const edgeColor = 0x84cc16; // Chartreuse / light green dashed lines
+    const edgeColor = this.isLight ? 0x4d7c0f : 0x84cc16; // dark olive on light bg, chartreuse on dark bg
     const faceColor = 0xfbbf24; // Amber / golden warm translucent face fill
     const faceOpacity = 0.16;
 
@@ -329,8 +377,13 @@ export class OrbitalMeshFactory {
     if (orbitalType === 's') {
       const radius = 0.68;
       const geom = new THREE.SphereGeometry(radius, 36, 36);
-      const mat = this.createOrbitalMaterial(COLOR_POS_PHASE, opacity);
+      const isPos = options.phase !== undefined ? options.phase >= 0 : true;
+      const sColor = isPos ? COLOR_POS_PHASE : COLOR_NEG_PHASE;
+      const mat = this.createOrbitalMaterial(sColor, opacity);
       const sphere = new THREE.Mesh(geom, mat);
+      sphere.userData.isLobe = true;
+      sphere.userData.phase = isPos ? 1 : -1;
+      sphere.userData.localDir = new THREE.Vector3(0, 1, 0);
       group.add(sphere);
     }
 
@@ -440,19 +493,22 @@ export class OrbitalMeshFactory {
         const dir = new THREE.Vector3(Math.cos(ang), Math.sin(ang), 0);
         group.add(this.buildOrientedLobe(dir, true, 'hybrid', opacity));
       });
-      group.add(this.buildOrientedLobe(new THREE.Vector3(0, 0, 1), true, 'hybrid', opacity));
-      group.add(this.buildOrientedLobe(new THREE.Vector3(0, 0, -1), true, 'hybrid', opacity));
+      // Axial lobes: +Z is positive phase (Red), -Z is negative phase (Blue)
+      group.add(this.buildOrientedLobe(new THREE.Vector3(0, 0,  1), true,  'hybrid', opacity));
+      group.add(this.buildOrientedLobe(new THREE.Vector3(0, 0, -1), false, 'hybrid', opacity));
     }
 
     // --- sp³d² Hybridization ---
     else if (orbitalType === 'sp3d2') {
       [
         new THREE.Vector3( 1, 0, 0), new THREE.Vector3(-1, 0, 0),
-        new THREE.Vector3( 0, 1, 0), new THREE.Vector3( 0,-1, 0),
-        new THREE.Vector3( 0, 0, 1), new THREE.Vector3( 0, 0,-1)
+        new THREE.Vector3( 0, 1, 0), new THREE.Vector3( 0,-1, 0)
       ].forEach(dir => {
         group.add(this.buildOrientedLobe(dir, true, 'hybrid', opacity));
       });
+      // Axial lobes: +Z is positive phase (Red), -Z is negative phase (Blue)
+      group.add(this.buildOrientedLobe(new THREE.Vector3(0, 0,  1), true,  'hybrid', opacity));
+      group.add(this.buildOrientedLobe(new THREE.Vector3(0, 0, -1), false, 'hybrid', opacity));
     }
 
     // --- dxy Orbital ---

@@ -6,6 +6,8 @@
 import { ARRANGEMENT_INFO, NODAL_INFO, ORBITAL_DESCRIPTIONS } from '../../constants/Orbitals.js';
 import { ELEMENT_DEFAULTS, ORBITAL_DISPLAY_LABELS } from '../../constants/Elements.js';
 
+const escapeHtml = (s) => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
 export class SidebarView {
   constructor() {
     this.atomCountEl = document.getElementById('atom-count');
@@ -39,6 +41,7 @@ export class SidebarView {
     this.atomArrangementType = document.getElementById('atom-arrangement-type');
     this.atomNodalCheck = document.getElementById('atom-nodal-check');
     this.atomNodalType = document.getElementById('atom-nodal-type');
+    this.atomChargeVal = document.getElementById('atom-charge-val');
     this.showSelectedOutlineCheck = document.getElementById('show-selected-outline-check');
     this.selectedOutlineSyncDesc = document.getElementById('selected-outline-sync-desc');
     this.showSelectedNodalCheck = document.getElementById('show-selected-nodal-check');
@@ -63,7 +66,13 @@ export class SidebarView {
       this.atomCountEl.textContent = atoms.length;
     }
 
-    document.body.classList.toggle('has-multi-selection', selectedIds.size > 1);
+    const isMulti = (selectedIds.size > 1) || (vm.interactionMode === 'box') || (vm.interactionMode === 'configure');
+    document.body.classList.toggle('has-multi-selection', isMulti);
+
+    const multiCard = document.getElementById('multi-select-card');
+    if (multiCard) {
+      multiCard.style.display = '';
+    }
 
     if (this.multiCountBadge) {
       this.multiCountBadge.textContent = `${selectedIds.size} Selected`;
@@ -87,10 +96,14 @@ export class SidebarView {
         const outlineIcon = (atom.showArrangement && arrInfo) ? ` <span title="Outline: ${arrInfo.name} active" style="color: #84cc16; font-size: 10px; margin-left: 2px;">📐</span>` : '';
         const nodInfo = NODAL_INFO[atom.orbitalType];
         const nodalIcon = (atom.showNodalPlanes && nodInfo) ? ` <span title="Nodal: ${nodInfo.type} active" style="color: #38bdf8; font-size: 10px; margin-left: 2px;">⚪</span>` : '';
+        const chargeSign = atom.charge > 0 ? `+${atom.charge}` : `${atom.charge}`;
+        const chargeBadge = atom.charge !== 0
+          ? `<sup style="color: ${atom.charge < 0 ? '#38bdf8' : '#f59e0b'}; font-weight: 700; margin-left: 2px;">${chargeSign}</sup>`
+          : '';
 
         badge.innerHTML = `
           <span class="badge-color-dot" style="background:${atom.color}"></span>
-          <span>${atom.name}</span>
+          <span>${escapeHtml(atom.name)}${chargeBadge}</span>
           <span style="font-size: 9px; color: var(--accent-cyan)">[${atom.orbitalType}]</span>
           ${outlineIcon}${nodalIcon}
         `;
@@ -119,7 +132,7 @@ export class SidebarView {
       let avgX = 0, avgY = 0, avgZ = 0;
       let count = 0;
       selectedIds.forEach(id => {
-        const a = vm.model.getAtom(id);
+        const a = vm.getAtom(id);
         if (a) {
           avgX += a.position.x;
           avgY += a.position.y;
@@ -166,6 +179,16 @@ export class SidebarView {
 
       if (this.atomRadiusSlider) this.atomRadiusSlider.value = selected.radius;
       if (this.atomRadiusVal) this.atomRadiusVal.textContent = selected.radius.toFixed(2);
+
+      if (this.atomChargeVal) {
+        const c = selected.charge || 0;
+        this.atomChargeVal.textContent = c > 0 ? `+${c}` : `${c}`;
+        this.atomChargeVal.style.color = c === 0 ? 'var(--text-main)' : (c < 0 ? '#38bdf8' : '#f59e0b');
+        const manualChargeEl = document.getElementById('manual-atom-charge');
+        if (manualChargeEl && document.activeElement !== manualChargeEl) {
+          manualChargeEl.value = String(c);
+        }
+      }
 
       const arrInfo = ARRANGEMENT_INFO[selected.orbitalType];
       const nodInfo = NODAL_INFO[selected.orbitalType];
@@ -251,6 +274,11 @@ export class SidebarView {
     } else {
       if (this.selectedAtomLabelEl) this.selectedAtomLabelEl.textContent = 'None';
       if (this.atomActionsGroupEl) this.atomActionsGroupEl.style.display = 'none';
+
+      if (this.atomChargeVal) {
+        this.atomChargeVal.textContent = '0';
+        this.atomChargeVal.style.color = 'var(--text-dim)';
+      }
 
       if (this.rotXSlider) this.rotXSlider.value = 0;
       if (this.rotYSlider) this.rotYSlider.value = 0;
