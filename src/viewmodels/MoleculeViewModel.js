@@ -15,7 +15,8 @@ import {
   computeMolecularFormula,
   detectOrbitalOverlaps,
   alignOrbitalsForOverlap,
-  getOrbitalOverlapCompatibility
+  getOrbitalOverlapCompatibility,
+  calculateBondAlignmentEuler
 } from '../models/ChemistryMath.js';
 import {
   ELEMENT_DEFAULTS,
@@ -391,9 +392,11 @@ export class MoleculeViewModel extends EventEmitter {
       atom.setRadius(parseFloat(value));
     } else if (prop === 'orbitalType') {
       atom.setOrbitalType(value);
-      if (value === 'sp2' || value === 'sp') {
+      const neighbors = this.model.getBondedNeighbors(atom);
+      if (neighbors.length > 0 && value !== 'none' && value !== 's') {
+        this.orientAtomToBond(atom.id);
+      } else if (value === 'sp2' || value === 'sp') {
         this.alignAtomWithBondedNeighbors(atom);
-        const neighbors = this.model.getBondedNeighbors(atom);
         neighbors.forEach(n => {
           if (n.neighbor.orbitalType === 'sp2' || n.neighbor.orbitalType === 'sp') {
             this.alignAtomWithBondedNeighbors(n.neighbor);
@@ -503,7 +506,13 @@ export class MoleculeViewModel extends EventEmitter {
     try {
       this.model.getSelectedAtoms().forEach(atom => {
         atom.setOrbitalType(orbitalType);
-        if (orbitalType === 'sp2' || orbitalType === 'sp') {
+        const neighbors = this.model.getBondedNeighbors(atom);
+        if (neighbors.length > 0 && orbitalType !== 'none' && orbitalType !== 's') {
+          const alignInfo = calculateBondAlignmentEuler(atom, neighbors[0].neighbor, orbitalType);
+          if (alignInfo && alignInfo.euler) {
+            atom.rotation.copy(alignInfo.euler);
+          }
+        } else if (orbitalType === 'sp2' || orbitalType === 'sp') {
           this.alignAtomWithBondedNeighbors(atom);
         }
         this.emit('atomUpdated', atom);
@@ -732,6 +741,34 @@ export class MoleculeViewModel extends EventEmitter {
       this.emit('atomUpdated', atom);
     }
     return changed;
+  }
+
+  /**
+   * Recalculates and orients an atom's orbital lobes to align directly
+   * along the bond axis with a bonded neighbor.
+   */
+  orientAtomToBond(atomId, neighborId = null) {
+    const atom = this.model.getAtom(atomId);
+    if (!atom) return false;
+    const neighbors = this.model.getBondedNeighbors(atom);
+    if (neighbors.length === 0) return false;
+
+    let targetNeighbor = null;
+    if (neighborId) {
+      targetNeighbor = this.model.getAtom(neighborId);
+    } else {
+      targetNeighbor = neighbors[0].neighbor;
+    }
+    if (!targetNeighbor) return false;
+
+    const alignInfo = calculateBondAlignmentEuler(atom, targetNeighbor, atom.orbitalType);
+    if (!alignInfo || !alignInfo.euler) return false;
+
+    atom.rotation.copy(alignInfo.euler);
+    this.emit('atomUpdated', atom);
+    this._onStateMutated();
+    this.showToast(`🎯 Aligned ${atom.name} (${atom.orbitalType.toUpperCase()}) along bond to ${targetNeighbor.name} (${alignInfo.x}°, ${alignInfo.y}°, ${alignInfo.z}°)`, '✨');
+    return true;
   }
 
   alignSelectedOrbitals() {

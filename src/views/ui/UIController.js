@@ -7,7 +7,7 @@ import { SidebarView } from './SidebarView.js';
 import { HudView } from './HudView.js';
 import { MODiagramView } from './MODiagramView.js';
 import { ELEMENT_DEFAULTS } from '../../constants/Elements.js';
-import { parseElementFromName } from '../../models/ChemistryMath.js';
+import { parseElementFromName, getBondAlignmentSnapCandidates } from '../../models/ChemistryMath.js';
 
 export class UIController {
   constructor(viewModel, threeScene = null) {
@@ -507,6 +507,22 @@ export class UIController {
       });
     });
 
+    // Auto-Align Orbital to Bond Button
+    const autoAlignBondBtn = document.getElementById('auto-align-bond-btn');
+    if (autoAlignBondBtn) {
+      autoAlignBondBtn.addEventListener('click', () => {
+        const selected = this.vm.primarySelectedAtom;
+        if (!selected) {
+          this.vm.showToast('Please select an atom first', 'ℹ️');
+          return;
+        }
+        const ok = this.vm.orientAtomToBond(selected.id);
+        if (!ok) {
+          this.vm.showToast(`No bonded neighbors found for ${selected.name}`, '⚠️');
+        }
+      });
+    }
+
     // Checkboxes (Arrangement and Nodal)
     const atomArrangementCheck = document.getElementById('atom-arrangement-check');
     if (atomArrangementCheck) {
@@ -889,39 +905,11 @@ export class UIController {
       const nbr = this.vm.getAtom(nbrId);
       if (!nbr) return;
 
-      const dx = nbr.position.x - atom.position.x;
-      const dy = nbr.position.y - atom.position.y;
-      const dz = nbr.position.z - atom.position.z;
-      const dist = Math.hypot(dx, dy, dz);
-      if (dist < 0.001) return;
-
-      // Base Euler bond direction angles in degrees
-      const angleYZ = Math.round(Math.atan2(dy, dz) * 180 / Math.PI); // X-axis rotation
-      const angleXZ = Math.round(Math.atan2(dx, dz) * 180 / Math.PI); // Y-axis rotation
-      const angleXY = Math.round(Math.atan2(dy, dx) * 180 / Math.PI); // Z-axis rotation
-
-      const axisMap = {
-        x: angleYZ,
-        y: angleXZ,
-        z: angleXY
-      };
+      const candidatesMap = getBondAlignmentSnapCandidates(atom, nbr, atom.orbitalType);
+      if (!candidatesMap) return;
 
       axes.forEach(axis => {
-        const base = axisMap[axis];
-        // Calculate key alignment angles: sigma (collinear 0° / 180°), pi (perpendicular ±90°)
-        const candidates = [
-          { angle: normDeg(base), type: 'sigma', desc: 'Direct σ overlap' },
-          { angle: normDeg(base + 180), type: 'sigma', desc: 'Opposite σ* alignment' },
-          { angle: normDeg(base + 90), type: 'pi', desc: 'Parallel π overlap (+90°)' },
-          { angle: normDeg(base - 90), type: 'pi', desc: 'Parallel π overlap (-90°)' }
-        ];
-
-        // Also add hybrid trigonal planar step (120°) if applicable
-        if (atom.orbitalType === 'sp2' || nbr.orbitalType === 'sp2') {
-          candidates.push({ angle: normDeg(base + 120), type: 'hybrid', desc: 'Trigonal planar sp² (120°)' });
-          candidates.push({ angle: normDeg(base - 120), type: 'hybrid', desc: 'Trigonal planar sp² (-120°)' });
-        }
-
+        const candidates = candidatesMap[axis] || [];
         candidates.forEach(cand => {
           // Avoid duplicate snap points within 3°
           const exists = this.currentSnapPoints[axis].some(sp => Math.abs(sp.angle - cand.angle) <= 3);

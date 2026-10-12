@@ -820,6 +820,11 @@ export function alignAtomWithBondedNeighbors(atom, getBondedNeighborsFn) {
   // If atom is pure p (px, py, pz, p):
   if (type.startsWith('p') && type !== 'sp' && type !== 'sp2') {
     const firstNeighbor = neighbors[0].neighbor;
+    const alignInfo = calculateBondAlignmentEuler(atom, firstNeighbor);
+    if (alignInfo && alignInfo.euler) {
+      atom.rotation.copy(alignInfo.euler);
+      return true;
+    }
     return alignOrbitalsForOverlap(atom, firstNeighbor);
   }
 
@@ -908,6 +913,207 @@ export function alignAtomWithBondedNeighbors(atom, getBondedNeighborsFn) {
     atom.rotation.setFromRotationMatrix(rotMat, 'XYZ');
     return true;
   }
+}
+
+/**
+ * Calculates textbook-accurate Euler angles (order 'XYZ') for an atom
+ * to orient its orbital lobes toward a bonded neighbor along the bond axis.
+ */
+export function calculateBondAlignmentEuler(atom, targetNeighbor, overrideOrbital = null, reverse = false) {
+  if (!atom || !targetNeighbor) return null;
+  const orbitalType = overrideOrbital || atom.orbitalType;
+  if (!orbitalType || orbitalType === 'none' || orbitalType === 's') {
+    return { x: 0, y: 0, z: 0, euler: new THREE.Euler(0, 0, 0, 'XYZ') };
+  }
+
+  const u = targetNeighbor.position.clone().sub(atom.position);
+  const dist = u.length();
+  if (dist < 0.001) return null;
+  u.normalize();
+  if (reverse) u.negate();
+
+  const normDeg = (d) => {
+    let deg = (d + 180) % 360 - 180;
+    return Math.round(deg);
+  };
+
+  const toEulerAngles = (rotMat) => {
+    const e = new THREE.Euler().setFromRotationMatrix(rotMat, 'XYZ');
+    const toDeg = 180 / Math.PI;
+    return {
+      x: normDeg(e.x * toDeg),
+      y: normDeg(e.y * toDeg),
+      z: normDeg(e.z * toDeg),
+      euler: e
+    };
+  };
+
+  const rotMat = new THREE.Matrix4();
+
+  if (orbitalType === 'pz' || orbitalType === 'dz2') {
+    // Local orbital lobe along +Z (0, 0, 1)
+    const zCol = u.clone();
+    let ref = Math.abs(zCol.z) < 0.99 ? new THREE.Vector3(0, 0, 1) : new THREE.Vector3(0, 1, 0);
+    const xCol = new THREE.Vector3().crossVectors(ref, zCol).normalize();
+    const yCol = new THREE.Vector3().crossVectors(zCol, xCol).normalize();
+    rotMat.makeBasis(xCol, yCol, zCol);
+    return toEulerAngles(rotMat);
+  }
+
+  if (orbitalType === 'px' || orbitalType === 'sp') {
+    // Local orbital lobe along +X (1, 0, 0)
+    const xCol = u.clone();
+    let ref = Math.abs(xCol.z) < 0.99 ? new THREE.Vector3(0, 0, 1) : new THREE.Vector3(0, 1, 0);
+    const yCol = new THREE.Vector3().crossVectors(ref, xCol).normalize();
+    const zCol = new THREE.Vector3().crossVectors(xCol, yCol).normalize();
+    rotMat.makeBasis(xCol, yCol, zCol);
+    return toEulerAngles(rotMat);
+  }
+
+  if (orbitalType === 'py') {
+    // Local orbital lobe along +Y (0, 1, 0)
+    const yCol = u.clone();
+    let ref = Math.abs(yCol.z) < 0.99 ? new THREE.Vector3(0, 0, 1) : new THREE.Vector3(1, 0, 0);
+    const zCol = new THREE.Vector3().crossVectors(ref, yCol).normalize();
+    const xCol = new THREE.Vector3().crossVectors(yCol, zCol).normalize();
+    rotMat.makeBasis(xCol, yCol, zCol);
+    return toEulerAngles(rotMat);
+  }
+
+  if (orbitalType === 'sp2') {
+    // Hybrid lobe along +X, unhybridized pz along +Z
+    const xCol = u.clone();
+    let zCol = null;
+    const nbrAxes = getAtomUnhybridAxes(targetNeighbor);
+    if (nbrAxes.length > 0) {
+      const pRef = nbrAxes[0].worldPosDir.clone();
+      zCol = pRef.sub(xCol.clone().multiplyScalar(pRef.dot(xCol)));
+    }
+    if (!zCol || zCol.lengthSq() < 1e-4) {
+      const ref = Math.abs(xCol.z) < 0.99 ? new THREE.Vector3(0, 0, 1) : new THREE.Vector3(0, 1, 0);
+      zCol = ref.sub(xCol.clone().multiplyScalar(ref.dot(xCol))).normalize();
+    } else {
+      zCol.normalize();
+    }
+    const yCol = new THREE.Vector3().crossVectors(zCol, xCol).normalize();
+    zCol = new THREE.Vector3().crossVectors(xCol, yCol).normalize();
+    rotMat.makeBasis(xCol, yCol, zCol);
+    return toEulerAngles(rotMat);
+  }
+
+  if (orbitalType === 'sp3') {
+    const s = 1 / Math.sqrt(3);
+    const localLobes = [
+      new THREE.Vector3(s, s, s),
+      new THREE.Vector3(-s, -s, s),
+      new THREE.Vector3(-s, s, -s),
+      new THREE.Vector3(s, -s, -s)
+    ];
+    let bestLobe = localLobes[0];
+    let maxDot = -Infinity;
+    localLobes.forEach(lobe => {
+      const worldLobe = lobe.clone().applyEuler(atom.rotation);
+      const dot = worldLobe.dot(u);
+      if (dot > maxDot) {
+        maxDot = dot;
+        bestLobe = lobe;
+      }
+    });
+    const q = new THREE.Quaternion().setFromUnitVectors(bestLobe, u);
+    const e = new THREE.Euler().setFromQuaternion(q, 'XYZ');
+    const toDeg = 180 / Math.PI;
+    return {
+      x: normDeg(e.x * toDeg),
+      y: normDeg(e.y * toDeg),
+      z: normDeg(e.z * toDeg),
+      euler: e
+    };
+  }
+
+  if (orbitalType === 'sp3d') {
+    const localLobes = [
+      new THREE.Vector3(1, 0, 0),
+      new THREE.Vector3(Math.cos(2 * Math.PI / 3), Math.sin(2 * Math.PI / 3), 0),
+      new THREE.Vector3(Math.cos(4 * Math.PI / 3), Math.sin(4 * Math.PI / 3), 0),
+      new THREE.Vector3(0, 0, 1),
+      new THREE.Vector3(0, 0, -1)
+    ];
+    let bestLobe = localLobes[0];
+    let maxDot = -Infinity;
+    localLobes.forEach(lobe => {
+      const worldLobe = lobe.clone().applyEuler(atom.rotation);
+      const dot = worldLobe.dot(u);
+      if (dot > maxDot) {
+        maxDot = dot;
+        bestLobe = lobe;
+      }
+    });
+    const q = new THREE.Quaternion().setFromUnitVectors(bestLobe, u);
+    const e = new THREE.Euler().setFromQuaternion(q, 'XYZ');
+    const toDeg = 180 / Math.PI;
+    return {
+      x: normDeg(e.x * toDeg),
+      y: normDeg(e.y * toDeg),
+      z: normDeg(e.z * toDeg),
+      euler: e
+    };
+  }
+
+  const localLobes = getOrbitalLobeDirections(orbitalType);
+  const u0 = localLobes.length > 0 ? localLobes[0] : new THREE.Vector3(0, 0, 1);
+  const q = new THREE.Quaternion().setFromUnitVectors(u0, u);
+  const e = new THREE.Euler().setFromQuaternion(q, 'XYZ');
+  const toDeg = 180 / Math.PI;
+  return {
+    x: normDeg(e.x * toDeg),
+    y: normDeg(e.y * toDeg),
+    z: normDeg(e.z * toDeg),
+    euler: e
+  };
+}
+
+/**
+ * Returns rotation slider snap point candidates for each axis (x, y, z)
+ * when atom is bonded to targetNeighbor.
+ */
+export function getBondAlignmentSnapCandidates(atom, targetNeighbor, overrideOrbital = null) {
+  const normDeg = (d) => {
+    let deg = (d + 180) % 360 - 180;
+    return Math.round(deg);
+  };
+
+  const direct = calculateBondAlignmentEuler(atom, targetNeighbor, overrideOrbital, false);
+  const opposite = calculateBondAlignmentEuler(atom, targetNeighbor, overrideOrbital, true);
+  if (!direct) return null;
+
+  const result = { x: [], y: [], z: [] };
+  const axes = ['x', 'y', 'z'];
+
+  axes.forEach(axis => {
+    const primAngle = direct[axis];
+    const oppAngle = opposite ? opposite[axis] : normDeg(primAngle + 180);
+
+    const candidates = [
+      { angle: normDeg(primAngle), type: 'sigma', desc: 'Direct σ bond alignment' },
+      { angle: normDeg(oppAngle), type: 'sigma', desc: 'Opposite σ* alignment' },
+      { angle: normDeg(primAngle + 90), type: 'pi', desc: 'Parallel π overlap (+90°)' },
+      { angle: normDeg(primAngle - 90), type: 'pi', desc: 'Parallel π overlap (-90°)' }
+    ];
+
+    const orb = overrideOrbital || atom.orbitalType;
+    if (orb === 'sp2' || (targetNeighbor && targetNeighbor.orbitalType === 'sp2')) {
+      candidates.push({ angle: normDeg(primAngle + 120), type: 'hybrid', desc: 'Trigonal planar sp² (120°)' });
+      candidates.push({ angle: normDeg(primAngle - 120), type: 'hybrid', desc: 'Trigonal planar sp² (-120°)' });
+    }
+
+    candidates.forEach(cand => {
+      if (!result[axis].some(sp => Math.abs(sp.angle - cand.angle) <= 3)) {
+        result[axis].push(cand);
+      }
+    });
+  });
+
+  return result;
 }
 
 /**
